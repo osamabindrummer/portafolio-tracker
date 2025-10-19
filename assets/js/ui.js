@@ -348,24 +348,6 @@ const setupChartPlatformSelect = (state, callback) => {
   }
 };
 
-const setupFetchButton = (state, callback) => {
-  const fetchButton = document.getElementById("fetch-button");
-  if (!fetchButton) {
-    return;
-  }
-
-  const job = state.fetchJob ?? { status: "idle" };
-  const isBusy = job.status === "running" || state.status === "loading" || state.status === "refreshing";
-
-  fetchButton.disabled = isBusy;
-  fetchButton.textContent = job.status === "running" ? "Obteniendo..." : "Obtener datos";
-  fetchButton.classList.toggle("is-loading", job.status === "running");
-
-  if (callback) {
-    fetchButton.onclick = () => callback();
-  }
-};
-
 const setupRefreshButton = (state, callback) => {
   const refreshButton = document.getElementById("refresh-button");
   if (!refreshButton) {
@@ -374,12 +356,11 @@ const setupRefreshButton = (state, callback) => {
 
   const isReady = state.status === "ready";
   const isRefreshing = state.status === "refreshing";
-  const fetchJob = state.fetchJob ?? { status: "idle" };
 
-  const shouldDisable = !isReady || isRefreshing || fetchJob.status === "running";
+  const shouldDisable = !isReady || isRefreshing;
 
   refreshButton.disabled = shouldDisable;
-  refreshButton.textContent = isRefreshing ? "Actualizando..." : "Actualizar página";
+  refreshButton.textContent = isRefreshing ? "Actualizando..." : "Actualizar datos";
   refreshButton.classList.toggle("is-loading", isRefreshing);
 
   if (callback) {
@@ -410,10 +391,8 @@ export const renderUI = (state, callbacks = {}) => {
   const metricsGrid = document.getElementById("metrics-cards");
   const tablesContainer = document.getElementById("holdings-tables");
   const lastUpdate = document.getElementById("last-update");
-  const fetchStatus = document.getElementById("fetch-status");
 
   setupChartPlatformSelect(state, callbacks.onPlatformChange);
-  setupFetchButton(state, callbacks.onFetchData);
   setupRefreshButton(state, callbacks.onRefresh);
   setupChartModeSelect(state, callbacks.onChartModeChange);
 
@@ -421,32 +400,6 @@ export const renderUI = (state, callbacks = {}) => {
     lastUpdate.textContent = state.generatedAt
       ? `Última actualización: ${formatDateTime(state.generatedAt)}`
       : "Última actualización: --";
-  }
-
-  if (fetchStatus) {
-    const job = state.fetchJob ?? { status: "idle", message: "" };
-    const statusMessage =
-      job.status === "running"
-        ? "Ejecutando fetch_data.py..."
-        : job.status === "success"
-        ? (() => {
-            const baseMessage = job.message || 'Datos obtenidos. Presiona "Actualizar página".';
-            if (job.generatedAt) {
-              return `${baseMessage} (${formatDateTime(job.generatedAt)})`;
-            }
-            return baseMessage;
-          })()
-        : job.status === "error"
-        ? job.message || "No se pudo ejecutar fetch_data.py."
-        : job.message || "";
-
-    fetchStatus.textContent = statusMessage;
-    fetchStatus.classList.remove("is-success", "is-error");
-    if (job.status === "success") {
-      fetchStatus.classList.add("is-success");
-    } else if (job.status === "error") {
-      fetchStatus.classList.add("is-error");
-    }
   }
 
   if (state.status === "loading") {

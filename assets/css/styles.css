@@ -137,11 +137,6 @@ a {
   box-shadow: none;
 }
 
-.header-button.fetch-button {
-  background-color: #0b8a5f;
-  box-shadow: 0 8px 18px rgba(11, 138, 95, 0.22);
-}
-
 .header-button.refresh-button {
   background-color: #0a84ff;
 }
@@ -150,20 +145,6 @@ a {
   font-size: 0.75rem;
   color: var(--muted-color);
   letter-spacing: 0.02em;
-}
-
-.fetch-status {
-  font-size: 0.78rem;
-  color: var(--muted-color);
-  min-height: 1em;
-}
-
-.fetch-status.is-success {
-  color: #0b8a5f;
-}
-
-.fetch-status.is-error {
-  color: #d32f2f;
 }
 
 .app-main {
@@ -604,8 +585,7 @@ tbody tr:nth-child(even) {
     max-height: 448px;
   }
 
-  .last-update,
-  .fetch-status {
+  .last-update {
     width: 100%;
     display: block;
     text-align: center;

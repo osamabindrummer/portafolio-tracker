@@ -1,5 +1,14 @@
 # Changelog
 
+## 2025-10-19
+
+### Tarea 1
+- Rediseñada la cabecera con botones separados “Obtener datos” y “Actualizar página”, mensajes de estado accesibles y comportamiento responsive tanto en desktop como móvil.
+- Añadido servidor local `scripts/dev_server.py` y lógica de reintento en la UI para ejecutar manualmente `scripts/fetch_data.py`, evitando errores 501.
+- Ampliado `scripts/fetch_data.py` tomando como base `etf_tracker.py`: nuevos helpers para series diarias, cálculo consistente de variaciones (día, 1M, 1Y, 5Y), histogramas filtrados y generación offline con ~6 años de precios.
+- Actualizadas métricas rápidas y tablas para mostrar variación mensual, retorno 1Y y 5Y ponderados solo con holdings válidos; se renombró «Racional - Pack ETF» y se mejoró la legibilidad en móviles.
+- Integrado el histograma de variación mensual junto a los retornos de 1 y 5 años en Chart.js, manteniendo datos 5Y visibles tras cargar la página.
+
 ## 2025-10-18
 - Renovado el encabezado: icono 💸 integrado, botón `Actualizar datos` con estilo iOS y fecha de refresco bajo el botón.
 - Reestructuradas las métricas rápidas para mostrar simultáneamente Racional y Fintual con logos, tarjetas rectangulares y nuevos gradientes por plataforma.
