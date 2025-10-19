@@ -1,11 +1,4 @@
 {
-<<<<<<< HEAD
-  "generated_at": "2025-10-19T22:31:23Z",
-  "currency": "USD",
-  "source": {
-    "provider": "yfinance",
-    "retrieved_at": "2025-10-19T22:31:23Z"
-=======
   "generated_at": "2025-10-19T23:15:13Z",
   "currency": "USD",
   "source": {
@@ -14,7 +7,6 @@
     "notes": {
       "info": "Datos deterministas generados en modo offline."
     }
->>>>>>> 4c2bc4f (interfaz simplificada)
   },
   "platforms": [
     {
