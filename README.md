@@ -1,5 +1,7 @@
 # Portafolio Tracker
 
+https://osamabindrummer.github.io/portafolio-tracker/
+
 Sitio estático para visualizar y comparar mis inversiones en Racional y Fintual. El frontend consume el archivo `data/latest.json` generado por un script de Python y publicado mediante GitHub Actions.
 
 ## Estructura principal
