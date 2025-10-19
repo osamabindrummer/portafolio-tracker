@@ -38,4 +38,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: update latest data"
-          file_pattern: data/latest.json assets/img/finviz-map.png
+          file_pattern: data/latest.json

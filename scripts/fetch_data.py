@@ -23,7 +23,6 @@ except ImportError:  # pragma: no cover
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = BASE_DIR / "data" / "latest.json"
-DEFAULT_HEATMAP_PATH = "assets/img/finviz-map.png"
 
 
 @dataclass(frozen=True)
@@ -496,12 +495,6 @@ def build_payload(
                 "return_1y": histogram_1y,
                 "return_5y": histogram_5y,
             },
-        },
-        "heatmap": {
-            "provider": "finviz",
-            "image_path": DEFAULT_HEATMAP_PATH,
-            "captured_at": generated_at,
-            "source_url": "https://finviz.com/map.ashx?t=sec",
         },
     }
     if notes:

@@ -71,7 +71,6 @@ const buildStateFromData = (data, preferredPlatformId = null) => {
     platforms,
     platformIndex,
     charts: data.charts ?? {},
-    heatmap: data.heatmap ?? null,
     activePlatformId,
   };
 };

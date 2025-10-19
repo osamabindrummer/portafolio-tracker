@@ -5,7 +5,7 @@ Centralizar en un único archivo JSON toda la información necesaria para render
 - Datos generales y metadata de generación.
 - Estructura de plataformas y tenencias con métricas clave.
 - Datos preprocesados para Chart.js (línea 5Y e histogramas 1Y/5Y).
-- Configuración del embed de Finviz y otros extras opcionales.
+- Información opcional que complemente la UI (ej. embeds o notas adicionales).
 
 El objetivo es que el frontend solo tenga que leer este archivo y no derivar cálculos complejos ni conocer la fuente original de datos.
 
@@ -40,12 +40,6 @@ El objetivo es que el frontend solo tenga que leer este archivo y no derivar cá
       "return_1y": [],
       "return_5y": []
     }
-  },
-  "heatmap": {
-    "provider": "finviz",
-    "image_path": "assets/img/finviz-map.png",
-    "captured_at": "2024-05-27T12:34:00Z",
-    "source_url": "https://finviz.com/map.ashx?t=sec"
   }
 }
 ```
@@ -118,14 +112,6 @@ Datos ya estructurados para alimentar Chart.js sin cálculos extra.
   - `return_5y` (`array`):
     - Misma estructura que `return_1y`, con `value` representando el retorno acumulado a 5 años.
   - Al mantener este formato, Chart.js puede generar barras directamente sin cálculos adicionales.
-
-### `heatmap`
-Información para mostrar el mapa de Finviz como imagen estática.
-- `provider` (`string`): `"finviz"` u otro.
-- `image_path` (`string`): Ruta relativa al archivo PNG generado por el workflow (`"assets/img/finviz-map.png"`).
-- `captured_at` (`string`, ISO 8601): Momento en el que se tomó la captura.
-- `source_url` (`string`): URL original para abrir la versión interactiva.
-- `notes` (`string`, opcional): Advertencias de uso (ej. “Imagen estática sin interacción”).
 
 ## Consideraciones adicionales
 - **Normalización de datos**: Los arrays `price_history` y `normalized_5y` deben compartir la misma longitud y fechas alineadas. Si se usa interpolación, documentarla en `source.notes`.
@@ -206,12 +192,6 @@ Información para mostrar el mapa de Finviz como imagen estática.
         { "ticker": "IYWCL", "platform_id": "racional", "label": "IYWCL", "weight": 0.35, "value": 1.05 }
       ]
     }
-  },
-  "heatmap": {
-    "provider": "finviz",
-    "image_path": "assets/img/finviz-map.png",
-    "captured_at": "2024-05-27T12:34:00Z",
-    "source_url": "https://finviz.com/map.ashx?t=sec"
   }
 }
 ```

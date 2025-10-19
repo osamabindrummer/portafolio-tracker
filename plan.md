@@ -3,7 +3,7 @@
 ## 0. Contexto y objetivo
 - Diseñar un sitio personal en GitHub Pages que funcione como tracker de mis inversiones.
 - Mostrar evolución histórica y comparada de ETFs/acciones agrupadas por plataforma (Racional vs Fintual).
-- Permitir actualización manual en la UI (botón) y mostrar el mapa de calor de Finviz (https://finviz.com/map.ashx).
+- Permitir actualización manual en la UI (botón) y mantener un embed de mercado en vivo (TradingView) para contexto adicional.
 - Mantener una experiencia ligera, clara y personalizada, priorizando exactitud de datos y claridad visual.
 
 ## 1. Decisiones confirmadas
@@ -38,7 +38,6 @@
    - Descargar precios ajustados de los últimos 5 años.
    - Calcular retornos 1Y y 5Y, variación diaria y series normalizadas (base 100) por ETF.
    - Construir el JSON siguiendo `formato_json.md` y escribirlo en `data/latest.json`.
-   - Generar imagen estática del mapa Finviz (p. ej. con Playwright/Selenium + screenshot) y guardarla en `assets/img/finviz-map.png`.
    - Registrar timestamp de generación.
 2. Validar manejo de errores:
    - Retries ante fallos de red.
@@ -55,7 +54,7 @@
    - Header con branding personal, selector de plataforma y botón “Actualizar datos”.
    - Sección de métricas rápidas (cards con pesos, retorno 1Y/5Y).
    - Panel principal con gráficos: línea 5Y, histogramas (1Y y 5Y) y tabla.
-   - Sección final con embed del mapa Finviz y notas informativas.
+   - Sección final con embed de TradingView y notas informativas.
 2. JavaScript modular:
    - `state.js`: carga inicial del JSON, almacenamiento en memoria, control de plataforma activa.
    - `charts.js`: encapsular la configuración de Chart.js para línea e histogramas.
@@ -80,7 +79,7 @@
    - Tooltips en gráficos (Chart.js los provee).
    - Animaciones suaves (transparencia/scale) evitando saturar la experiencia.
    - Indicadores claros cuando no hay datos disponibles.
-   - Mostrar fecha de la imagen del mapa Finviz y enlace a la versión interactiva.
+   - Mostrar fecha de la última actualización del portafolio y un enlace a recursos externos relevantes.
 4. Accesibilidad:
    - Contraste adecuado, orden lógico en el DOM, focus states visibles.
 
@@ -94,10 +93,9 @@
 3. Tabla detallada:
    - Columnas: Ticker, Nombre, % Portafolio, Retorno 1Y, Retorno 5Y, Variación diaria.
    - Posibilidad de ordenar por columna (JS nativo).
-4. Mapa tipo Finviz:
-   - Workflow descarga imagen estática (PNG) del mapa usando navegador headless o API alternativa y la guarda como `assets/img/finviz-map.png`.
-   - Frontend muestra la imagen con `<img>` y un enlace “Abrir en Finviz” para interacción completa.
-   - Incluir texto auxiliar indicando fecha de actualización y limitaciones (imagen sin interacción).
+4. Información de mercado adicional:
+   - Embebido de TradingView para tickers seleccionados.
+   - Incluir texto auxiliar indicando fecha de actualización de los datos del portafolio y limitaciones del embed.
 
 ## 7. Lógica de actualización y estados
 1. Estados principales:
