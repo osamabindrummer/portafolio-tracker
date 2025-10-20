@@ -1,8 +1,24 @@
 const DATA_URL = "data/latest.json";
 const STORAGE_KEY = "portfolioTracker:lastGeneratedAt";
 
+const buildDataRequestUrl = () => {
+  if (typeof window === "undefined") {
+    return DATA_URL;
+  }
+
+  try {
+    const requestUrl = new URL(DATA_URL, window.location.href);
+    requestUrl.searchParams.set("_", Date.now().toString());
+    return requestUrl.toString();
+  } catch (error) {
+    console.warn("No se pudo construir la URL de datos", error);
+    const cacheBuster = Date.now().toString();
+    return `${DATA_URL}?_=${cacheBuster}`;
+  }
+};
+
 const fetchPortfolioData = async () => {
-  const response = await fetch(DATA_URL, { cache: "no-store" });
+  const response = await fetch(buildDataRequestUrl(), { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`No se pudo cargar ${DATA_URL} (HTTP ${response.status}).`);
   }

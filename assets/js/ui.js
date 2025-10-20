@@ -397,9 +397,16 @@ export const renderUI = (state, callbacks = {}) => {
   setupChartModeSelect(state, callbacks.onChartModeChange);
 
   if (lastUpdate) {
-    lastUpdate.textContent = state.generatedAt
-      ? `Última actualización: ${formatDateTime(state.generatedAt)}`
-      : "Última actualización: --";
+    const hasGeneratedAt = Boolean(state.generatedAt);
+    const currentLabel = hasGeneratedAt ? formatDateTime(state.generatedAt) : "--";
+    const previousTimestamp = state.previousGeneratedAt;
+    const hasPrevious =
+      Boolean(previousTimestamp) && previousTimestamp !== state.generatedAt;
+    const previousLabel = hasPrevious ? formatDateTime(previousTimestamp) : null;
+
+    lastUpdate.textContent = hasPrevious
+      ? `Última actualización: ${currentLabel} · Anterior: ${previousLabel}`
+      : `Última actualización: ${currentLabel}`;
   }
 
   if (state.status === "loading") {
