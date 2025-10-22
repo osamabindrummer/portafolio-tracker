@@ -1,20 +1,10 @@
-const DATA_URL = "data/latest.json";
+const DATA_URL = new URL("../../data/latest.json", import.meta.url);
 const STORAGE_KEY = "portfolioTracker:lastGeneratedAt";
 
 const buildDataRequestUrl = () => {
-  if (typeof window === "undefined") {
-    return DATA_URL;
-  }
-
-  try {
-    const requestUrl = new URL(DATA_URL, window.location.href);
-    requestUrl.searchParams.set("_", Date.now().toString());
-    return requestUrl.toString();
-  } catch (error) {
-    console.warn("No se pudo construir la URL de datos", error);
-    const cacheBuster = Date.now().toString();
-    return `${DATA_URL}?_=${cacheBuster}`;
-  }
+  const requestUrl = new URL(DATA_URL.href);
+  requestUrl.searchParams.set("_", Date.now().toString());
+  return requestUrl.toString();
 };
 
 const fetchPortfolioData = async () => {
