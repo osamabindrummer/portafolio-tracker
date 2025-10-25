@@ -194,6 +194,7 @@ a {
   gap: 1rem;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   grid-auto-rows: 1fr;
+  grid-auto-flow: row;
 }
 
 .metrics-card {
@@ -232,6 +233,30 @@ a {
   height: auto;
   object-fit: contain;
   filter: drop-shadow(0 8px 22px rgba(15, 23, 42, 0.16));
+}
+
+@media (min-width: 900px) {
+  .metrics-grid {
+    gap: 1.5rem;
+  }
+
+  .metrics-row {
+    grid-template-columns: minmax(220px, 260px) repeat(2, minmax(180px, 1fr));
+    grid-auto-rows: minmax(120px, auto);
+    align-items: stretch;
+  }
+
+  .metrics-card {
+    min-height: 0;
+  }
+
+  .metrics-card--platform {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: 100%;
+    margin-inline: 0;
+    aspect-ratio: auto;
+  }
 }
 
 .metrics-card .metric-label {
