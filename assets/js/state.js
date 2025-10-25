@@ -3,12 +3,19 @@ const STORAGE_KEY = "portfolioTracker:lastGeneratedAt";
 
 const buildDataRequestUrl = () => {
   const requestUrl = new URL(DATA_URL.href);
-  requestUrl.searchParams.set("_", Date.now().toString());
+  const cacheBuster = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  requestUrl.searchParams.set("cacheBust", cacheBuster);
   return requestUrl.toString();
 };
 
 const fetchPortfolioData = async () => {
-  const response = await fetch(buildDataRequestUrl(), { cache: "no-store" });
+  const response = await fetch(buildDataRequestUrl(), {
+    cache: "reload",
+    headers: {
+      "Cache-Control": "no-store",
+      Pragma: "no-cache",
+    },
+  });
   if (!response.ok) {
     throw new Error(`No se pudo cargar ${DATA_URL} (HTTP ${response.status}).`);
   }
