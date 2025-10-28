@@ -1,25 +1,79 @@
 const DATA_URL = new URL("../../data/latest.json", import.meta.url);
 const STORAGE_KEY = "portfolioTracker:lastGeneratedAt";
 
-const buildDataRequestUrl = () => {
-  const requestUrl = new URL(DATA_URL.href);
+const readMetaContent = (name) => {
+  if (typeof document === "undefined") {
+    return null;
+  }
+  const element = document.querySelector(`meta[name="${name}"]`);
+  const content = element?.getAttribute("content") ?? "";
+  const trimmed = content.trim();
+  return trimmed.length ? trimmed : null;
+};
+
+const buildCandidateEndpoints = () => {
+  const endpoints = [DATA_URL.href];
+
+  const repo = readMetaContent("data-source:repo");
+  if (repo) {
+    const branch = readMetaContent("data-source:branch") ?? "main";
+    const githubRawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/data/latest.json`;
+    endpoints.push(githubRawUrl);
+  }
+
+  return Array.from(new Set(endpoints));
+};
+
+const buildDataRequestUrl = (baseUrl) => {
+  const requestUrl = new URL(baseUrl);
   const cacheBuster = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   requestUrl.searchParams.set("cacheBust", cacheBuster);
   return requestUrl.toString();
 };
 
-const fetchPortfolioData = async () => {
-  const response = await fetch(buildDataRequestUrl(), {
+const fetchFromEndpoint = async (endpoint) => {
+  const response = await fetch(buildDataRequestUrl(endpoint), {
     cache: "reload",
     headers: {
       "Cache-Control": "no-store",
       Pragma: "no-cache",
     },
   });
+
   if (!response.ok) {
-    throw new Error(`No se pudo cargar ${DATA_URL} (HTTP ${response.status}).`);
+    throw new Error(`HTTP ${response.status}`);
   }
+
   return response.json();
+};
+
+const fetchPortfolioData = async () => {
+  const endpoints = buildCandidateEndpoints();
+  const errors = [];
+
+  for (const endpoint of endpoints) {
+    try {
+      const data = await fetchFromEndpoint(endpoint);
+      console.info(`Datos de portafolio cargados desde ${endpoint}`);
+      return { data, endpoint };
+    } catch (error) {
+      console.warn(`No se pudo cargar ${endpoint}`, error);
+      errors.push({ endpoint, error });
+    }
+  }
+
+  const reasons = errors
+    .map(({ endpoint, error }) => {
+      const message = error instanceof Error ? error.message : String(error);
+      return `${endpoint}: ${message}`;
+    })
+    .join("; ");
+
+  throw new Error(
+    reasons
+      ? `No se pudo cargar data/latest.json desde ninguno de los endpoints. Motivos: ${reasons}`
+      : "No se pudo determinar un endpoint para data/latest.json.",
+  );
 };
 
 const buildPlatformIndex = (platforms) =>
@@ -66,7 +120,7 @@ const storeGeneratedAt = (value) => {
   }
 };
 
-const buildStateFromData = (data, preferredPlatformId = null) => {
+const buildStateFromData = (data, preferredPlatformId = null, sourceEndpoint = null) => {
   const platforms = data.platforms ?? [];
   const platformIndex = buildPlatformIndex(platforms);
   const activePlatformId = pickActivePlatform(platforms, preferredPlatformId);
@@ -81,6 +135,7 @@ const buildStateFromData = (data, preferredPlatformId = null) => {
     previousGeneratedAt,
     currency: data.currency ?? "USD",
     source: data.source ?? {},
+    dataEndpoint: sourceEndpoint,
     platforms,
     platformIndex,
     charts: data.charts ?? {},
@@ -89,14 +144,14 @@ const buildStateFromData = (data, preferredPlatformId = null) => {
 };
 
 export const loadInitialState = async () => {
-  const data = await fetchPortfolioData();
-  return buildStateFromData(data);
+  const { data, endpoint } = await fetchPortfolioData();
+  return buildStateFromData(data, null, endpoint);
 };
 
 export const reloadState = async (currentState) => {
-  const data = await fetchPortfolioData();
+  const { data, endpoint } = await fetchPortfolioData();
   const preferredId = currentState?.activePlatformId ?? null;
-  return buildStateFromData(data, preferredId);
+  return buildStateFromData(data, preferredId, endpoint);
 };
 
 export const setActivePlatform = (state, platformId) => {
