@@ -12,7 +12,7 @@ const readMetaContent = (name) => {
 };
 
 const buildCandidateEndpoints = () => {
-  const endpoints = [DATA_URL.href];
+  const endpoints = [];
 
   const repo = readMetaContent("data-source:repo");
   if (repo) {
@@ -20,6 +20,8 @@ const buildCandidateEndpoints = () => {
     const githubRawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/data/latest.json`;
     endpoints.push(githubRawUrl);
   }
+
+  endpoints.push(DATA_URL.href);
 
   return Array.from(new Set(endpoints));
 };
