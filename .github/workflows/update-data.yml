@@ -34,6 +34,9 @@ jobs:
       - name: Validate JSON structure
         run: python -m json.tool data/latest.json > /dev/null
 
+      - name: Validate payload schema
+        run: python scripts/validate_json.py data/latest.json
+
       - name: Commit updated data
         uses: stefanzweifel/git-auto-commit-action@v5
         with:

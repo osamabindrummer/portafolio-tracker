@@ -270,16 +270,19 @@ def compute_returns(price_history: List[Dict[str, float]]) -> Dict[str, Optional
 
 def generate_sample_price_history(holding: HoldingConfig) -> List[Dict[str, float]]:
     behavior = SAMPLE_BEHAVIOR[holding.ticker]
-    periods = 6 * 365
-    start_date = datetime.utcnow().date() - timedelta(days=periods - 1)
+    total_days = 5 * 365
+    start_date = datetime.utcnow().date() - timedelta(days=total_days - 1)
+
+    daily_growth_factor = (1 + behavior["annual_return"]) ** (1 / 365)
+    seasonal_scale = 0.6
+
     points = []
-    for idx in range(periods):
+    for idx in range(total_days):
         current_date = start_date + timedelta(days=idx)
-        progress = idx / max(periods - 1, 1)
-        growth_factor = (1 + behavior["annual_return"]) ** progress
-        seasonal = 1 + behavior["volatility"] * math.sin(idx / 45)
-        price = round(behavior["base_price"] * growth_factor * seasonal, 2)
-        points.append({"date": current_date.isoformat(), "close": price})
+        trend_component = behavior["base_price"] * (daily_growth_factor**idx)
+        seasonal_component = 1 + seasonal_scale * behavior["volatility"] * math.sin(2 * math.pi * idx / 180)
+        price = max(trend_component * seasonal_component, 0.01)
+        points.append({"date": current_date.isoformat(), "close": round(price, 2)})
     return points
 
 
