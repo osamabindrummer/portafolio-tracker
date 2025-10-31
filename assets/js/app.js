@@ -1,5 +1,8 @@
 import { loadInitialState, reloadState, setActivePlatform } from "./state.js";
 import { renderUI } from "./ui.js";
+import { initTheme } from "./theme.js";
+
+initTheme();
 
 let appState = {
   status: "loading",

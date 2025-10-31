@@ -9,6 +9,44 @@ ChartGlobal.defaults.font.family =
 
 const MAIN_CANVAS_ID = "main-chart";
 let currentChart = null;
+let lastState = null;
+
+const DEFAULT_CHART_THEME = {
+  axisColor: "#1a1a1a",
+  gridColor: "rgba(11, 87, 208, 0.08)",
+  gridStrong: "rgba(100, 116, 139, 0.18)",
+  tooltipBg: "rgba(255, 255, 255, 0.95)",
+  tooltipColor: "#0f172a",
+  tooltipBorder: "rgba(15, 23, 42, 0.08)",
+};
+
+const readCssVariable = (styles, name, fallback) => {
+  if (!styles) {
+    return fallback;
+  }
+  const value = styles.getPropertyValue(name);
+  if (!value) {
+    return fallback;
+  }
+  const trimmed = value.trim();
+  return trimmed || fallback;
+};
+
+const getChartTheme = () => {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return DEFAULT_CHART_THEME;
+  }
+
+  const styles = window.getComputedStyle(document.documentElement);
+  return {
+    axisColor: readCssVariable(styles, "--chart-axis-color", DEFAULT_CHART_THEME.axisColor),
+    gridColor: readCssVariable(styles, "--chart-grid-color", DEFAULT_CHART_THEME.gridColor),
+    gridStrong: readCssVariable(styles, "--chart-grid-strong", DEFAULT_CHART_THEME.gridStrong),
+    tooltipBg: readCssVariable(styles, "--chart-tooltip-bg", DEFAULT_CHART_THEME.tooltipBg),
+    tooltipColor: readCssVariable(styles, "--chart-tooltip-color", DEFAULT_CHART_THEME.tooltipColor),
+    tooltipBorder: readCssVariable(styles, "--chart-tooltip-border", DEFAULT_CHART_THEME.tooltipBorder),
+  };
+};
 
 const COLOR_PALETTE = [
   "#3366CC",
@@ -196,6 +234,8 @@ const buildTimeseriesConfig = (state) => {
   const viewportWidth = typeof window !== "undefined" ? window.innerWidth || 1280 : 1280;
   const maxTicks = Math.max(4, Math.floor(viewportWidth / 140));
   const rotation = viewportWidth < 640 ? 30 : 0;
+  const chartTheme = getChartTheme();
+  ChartGlobal.defaults.color = chartTheme.axisColor;
 
   return {
     type: "line",
@@ -206,8 +246,16 @@ const buildTimeseriesConfig = (state) => {
       animation: false,
       interaction: { mode: "index", intersect: false },
       plugins: {
-        legend: { position: "bottom", labels: { usePointStyle: true } },
+        legend: {
+          position: "bottom",
+          labels: { usePointStyle: true, color: chartTheme.axisColor },
+        },
         tooltip: {
+          backgroundColor: chartTheme.tooltipBg,
+          titleColor: chartTheme.tooltipColor,
+          bodyColor: chartTheme.tooltipColor,
+          borderColor: chartTheme.tooltipBorder,
+          borderWidth: 1,
           callbacks: {
             label(context) {
               const value = context.parsed.y;
@@ -227,6 +275,7 @@ const buildTimeseriesConfig = (state) => {
             maxTicksLimit: maxTicks,
             maxRotation: rotation,
             minRotation: rotation,
+            color: chartTheme.axisColor,
             callback(value, index) {
               const raw = labels[index] ?? value ?? "";
               const text = raw.toString();
@@ -235,8 +284,8 @@ const buildTimeseriesConfig = (state) => {
           },
         },
         y: {
-          grid: { color: "rgba(11, 87, 208, 0.08)" },
-          ticks: { callback: (value) => `${value}` },
+          grid: { color: chartTheme.gridColor },
+          ticks: { color: chartTheme.axisColor, callback: (value) => `${value}` },
         },
       },
     },
@@ -248,6 +297,9 @@ const buildHistogramConfig = (state, histogramKey, datasetLabel) => {
   if (!labels.length || !data.length) {
     return null;
   }
+
+  const chartTheme = getChartTheme();
+  ChartGlobal.defaults.color = chartTheme.axisColor;
 
   return {
     type: "bar",
@@ -271,6 +323,11 @@ const buildHistogramConfig = (state, histogramKey, datasetLabel) => {
       plugins: {
         legend: { display: false },
         tooltip: {
+          backgroundColor: chartTheme.tooltipBg,
+          titleColor: chartTheme.tooltipColor,
+          bodyColor: chartTheme.tooltipColor,
+          borderColor: chartTheme.tooltipBorder,
+          borderWidth: 1,
           callbacks: {
             label(context) {
               const value = context.parsed.y ?? 0;
@@ -282,15 +339,16 @@ const buildHistogramConfig = (state, histogramKey, datasetLabel) => {
       scales: {
         x: {
           grid: { display: false },
-          ticks: { maxRotation: 60, minRotation: 0 },
+          ticks: { maxRotation: 60, minRotation: 0, color: chartTheme.axisColor },
         },
         y: {
           beginAtZero: true,
           ticks: {
             callback: (value) => `${(value * 100).toFixed(0)}%`,
+            color: chartTheme.axisColor,
             maxTicksLimit: 6,
           },
-          grid: { color: "rgba(0, 0, 0, 0.05)" },
+          grid: { color: chartTheme.gridColor },
         },
       },
     },
@@ -325,6 +383,7 @@ const buildChartConfig = (state) => {
 };
 
 export const createCharts = (state) => {
+  lastState = state;
   const canvas = getCanvas(MAIN_CANVAS_ID);
   if (!canvas) {
     return;
@@ -353,3 +412,12 @@ export const createCharts = (state) => {
   destroyCurrentChart();
   currentChart = new ChartGlobal(canvas.getContext("2d"), config);
 };
+
+if (typeof window !== "undefined") {
+  window.addEventListener("themechange", () => {
+    if (!lastState) {
+      return;
+    }
+    createCharts(lastState);
+  });
+}
