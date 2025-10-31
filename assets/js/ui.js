@@ -5,6 +5,15 @@ const PLATFORM_LOGOS = {
   fintual: "assets/img/fintual.png",
 };
 
+const RACIONAL_DISPLAY_NAMES = {
+  "CFIETFGE.SN": "Singular Global Equities",
+  "IYWCL.SN": "iShares U.S. Technology",
+  "EEMCL.SN": "iShares MSCI Emerging Markets",
+  "CFMITNIPSA.SN": "IT NOW S&P IPSA",
+  "CFIETFCC.SN": "Singular Chile Corporativo",
+  "CFMDIVO.SN": "It Now S&P/CLX Chile Dividend Index",
+};
+
 const trendClass = (value) => {
   if (value === null || value === undefined) {
     return "value-neutral";
@@ -237,6 +246,8 @@ const buildHoldingsRows = (platform) => {
 
       const ticker = holding.ticker ?? "--";
       const tickerLink = ticker && ticker !== "--" ? `https://finance.yahoo.com/quote/${encodeURIComponent(ticker)}/` : null;
+      const racionalDisplayName = platform.id === "racional" ? RACIONAL_DISPLAY_NAMES[ticker] : null;
+      const displayName = racionalDisplayName ?? holding.display_name ?? "--";
 
       return `
         <tr>
@@ -249,7 +260,7 @@ const buildHoldingsRows = (platform) => {
               }
             </strong>
           </td>
-          <td>${holding.display_name ?? "--"}</td>
+          <td>${displayName}</td>
           <td class="numeric">${formatPercent(weight, { signed: false })}</td>
           <td class="numeric ${trendClass(monthlyChange)}">${formatPercent(monthlyChange)}</td>
           <td class="numeric ${trendClass(return1Y)}">${formatPercent(return1Y)}</td>

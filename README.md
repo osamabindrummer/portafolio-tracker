@@ -2,58 +2,50 @@
 
 https://osamabindrummer.github.io/portafolio-tracker/
 
-Sitio estático para visualizar y comparar mis inversiones en Racional y Fintual. El frontend consume el archivo `data/latest.json` generado por un script de Python y publicado mediante GitHub Actions.
+Sitio estático con HTML, CSS y JS para visualizar y comparar mis inversiones en Racional y Fintual a partir de información de [Yahoo Finance](https://finance.yahoo.com/). El frontend consume el archivo `data/latest.json` generado por un script de Python y publicado mediante GitHub Actions los días lunes, miércoles y viernes a las 6 am.
 
-## Estructura principal
+## Qué ofrece
 
-- `index.html`: Prototipo de la UI (selector de plataforma, métricas comparadas, gráficos y widget TradingView).
-- `assets/css/styles.css`: Estilos responsivos y tokens de diseño.
-- `assets/js/`: Código JavaScript modular (`app`, `state`, `ui`, `charts`).
-- `data/latest.json`: Fuente de datos que alimenta la UI.
-- `scripts/fetch_data.py`: Genera `data/latest.json` (modo en línea y modo offline determinista).
-- `.github/workflows/update-data.yml`: Actualiza `data/latest.json` y commitea los cambios.
-- `.github/workflows/deploy.yml`: Publica el sitio en GitHub Pages.
-- `changelog.md`: Registro de cambios paso a paso durante la implementación del plan.
+- Comparación simultánea de portafolios Racional y Fintual (métricas ponderadas, retornos y variaciones).
+- Tablas con holdings detallados, pesos y enlaces a Yahoo Finance.
+- Gráficos interactivos impulsados por Chart.js.
+- Widget embebido de TradingView para desempeño de principales acciones individuales.
 
-## Requisitos locales
+## Estructura del repositorio
+
+- `index.html`: Shell del sitio y punto de entrada.
+- `assets/css/styles.css`: Estilos y tokens responsivos.
+- `assets/js/`: Lógica de UI, estado y gráficos (`app`, `state`, `ui`, `charts`).
+- `data/latest.json`: Dataset que alimenta la aplicación.
+- `scripts/fetch_data.py`: Generador del JSON (script Python).
+- `.github/workflows/`: Automatizaciones de generación de datos y despliegue en GitHub Pages.
+- `changelog.md`: Bitácora de cambios relevantes.
+
+## Requisitos
 
 - Python 3.9 o superior.
-- `pip` para instalar dependencias (`requirements.txt`).
+- `pip` (incluido con Python) para instalar `requirements.txt` (`yfinance`, etc.).
 
-## Generar datos localmente
+## Puesta en marcha local
+
+Para trabajar localmente en VS Code:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-python scripts/fetch_data.py --offline   # usa datos deterministas para probar la UI
-# python scripts/fetch_data.py           # (requiere yfinance y conexión a internet)
+python3 -m pip install -r requirements.txt
+python3 scripts/fetch_data.py          # usa cotizaciones reales (requiere internet)
+# python3 scripts/fetch_data.py --offline   # alternativa determinista sin red (datos inventados)
+python3 -m http.server 8000
 ```
 
-El script almacenará la última ejecución en `data/latest.json`; la UI consume directamente los datos sin dependencias externas.
+Luego se visita `http://localhost:8000/index.html`. El sitio es 100 % estático, pero necesita un servidor local para cargar assets y JSON sin problemas de rutas/CORS.
 
-## Workflows de GitHub Actions
+En este proyecto no se usa `npm install` ni `npm run dev` porque no hay bundlers ni toolchain de Node: todo se resuelve con Python + servidor estático.
 
-### `update-data.yml`
-- Disparadores: `workflow_dispatch` (manual) y cron diario (09:00 CL local).
-- Pasos: checkout, instalar dependencias, ejecutar `scripts/fetch_data.py`, validar el JSON y commitear el resultado.
+## Automatización (GitHub Actions)
 
-### `deploy.yml`
-- Disparadores: `workflow_dispatch` y `push` a `main`.
-- Pasos: checkout, validar que `data/latest.json` exista, preparar artefacto y desplegar en GitHub Pages con `actions/deploy-pages`.
-- Permisos configurados para escritura en Pages (`pages: write`) e ID token (OIDC).
+- `update-data.yml`: Ejecuta `scripts/fetch_data.py`, valida el JSON y commitea el resultado (cron diario + disparo manual).
+- `deploy.yml`: Publica `index.html` y assets en GitHub Pages cada vez que se hace push a `main` o se lanza el workflow manualmente.
 
-Para activar Pages, ve a **Settings → Pages** y selecciona la opción “GitHub Actions” como fuente. El workflow `deploy.yml` publicará la última versión del sitio.
-
-## Flujo recomendado
-
-1. Ejecutar `scripts/fetch_data.py` localmente (opcional) para validar cambios.
-2. Commits y push a `main`.
-3. Lanzar `Update data` manualmente si necesitas refrescar `data/latest.json`.
-4. El workflow `deploy.yml` se activará con cada push a `main` y publicará el sitio en Pages.
-
-## Próximos pasos
-
-- Conectar más fuentes de datos (o automatizar descargas de nuevos widgets) en `scripts/fetch_data.py`.
-- Añadir tests con `pytest` para validar cálculos y esquema del JSON.
-- Ejecutar Lighthouse y registrar métricas de performance/accesibilidad.
+Activa GitHub Pages en **Settings → Pages** usando la opción “GitHub Actions” para que el despliegue quede operativo.
