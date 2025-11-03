@@ -64,6 +64,25 @@ const formatDateTime = (isoString) => {
   }
 };
 
+const describeDataEndpoint = (endpoint) => {
+  if (!endpoint) {
+    return null;
+  }
+  try {
+    const url = new URL(endpoint);
+    if (url.hostname.endsWith("githubusercontent.com")) {
+      return "GitHub (raw content)";
+    }
+    if (url.hostname.endsWith("github.io")) {
+      return "GitHub Pages";
+    }
+    return url.hostname;
+  } catch (error) {
+    console.warn("No se pudo interpretar el endpoint de datos", error);
+    return endpoint;
+  }
+};
+
 const computeWeightedMetric = (platform, metricKey) => {
   if (!platform || !platform.holdings?.length) {
     return null;
@@ -402,6 +421,7 @@ export const renderUI = (state, callbacks = {}) => {
   const metricsGrid = document.getElementById("metrics-cards");
   const tablesContainer = document.getElementById("holdings-tables");
   const lastUpdate = document.getElementById("last-update");
+  const refreshStatus = document.getElementById("refresh-status");
 
   setupChartPlatformSelect(state, callbacks.onPlatformChange);
   setupRefreshButton(state, callbacks.onRefresh);
@@ -418,6 +438,56 @@ export const renderUI = (state, callbacks = {}) => {
     lastUpdate.textContent = hasPrevious
       ? `Última actualización: ${currentLabel} · Anterior: ${previousLabel}`
       : `Última actualización: ${currentLabel}`;
+  }
+
+  if (refreshStatus) {
+    const stateStatus = state.status ?? "loading";
+    let statusText = "Preparado para actualizar cuando lo necesites.";
+    let statusTone = "idle";
+
+    if (stateStatus === "loading") {
+      statusText = "Cargando datos iniciales...";
+      statusTone = "progress";
+    } else if (stateStatus === "refreshing") {
+      statusText = "Actualizando datos del portafolio...";
+      statusTone = "progress";
+    } else if (stateStatus === "error") {
+      const message =
+        typeof state.error === "string" && state.error.trim().length
+          ? state.error.trim()
+          : "Error desconocido al cargar los datos.";
+      statusText = `No se pudo actualizar: ${message}`;
+      statusTone = "error";
+    } else {
+      const hasGeneratedAt = Boolean(state.generatedAt);
+      const currentLabel = hasGeneratedAt ? formatDateTime(state.generatedAt) : null;
+      const previousTimestamp = state.previousGeneratedAt;
+      const hasPreviousDifference =
+        Boolean(previousTimestamp) && previousTimestamp !== state.generatedAt;
+      const sameAsPrevious =
+        Boolean(previousTimestamp) && previousTimestamp === state.generatedAt;
+      const sourceLabel = describeDataEndpoint(state.dataEndpoint);
+
+      if (!hasGeneratedAt) {
+        statusText = 'Datos cargados. Ejecuta "Actualizar datos" cuando lo desees.';
+      } else if (sameAsPrevious) {
+        statusText = `Datos generados el ${currentLabel}. No hay cambios respecto a la última versión guardada.`;
+      } else if (hasPreviousDifference) {
+        const previousLabel = formatDateTime(previousTimestamp);
+        statusText = `Datos actualizados el ${currentLabel}. Versión anterior: ${previousLabel}.`;
+      } else {
+        statusText = `Datos disponibles desde ${currentLabel}.`;
+      }
+
+      if (sourceLabel) {
+        statusText += ` Fuente: ${sourceLabel}.`;
+      }
+
+      statusTone = "success";
+    }
+
+    refreshStatus.textContent = statusText;
+    refreshStatus.dataset.state = statusTone;
   }
 
   if (state.status === "loading") {

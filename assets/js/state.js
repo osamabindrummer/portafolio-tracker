@@ -36,10 +36,6 @@ const buildDataRequestUrl = (baseUrl) => {
 const fetchFromEndpoint = async (endpoint) => {
   const response = await fetch(buildDataRequestUrl(endpoint), {
     cache: "reload",
-    headers: {
-      "Cache-Control": "no-store",
-      Pragma: "no-cache",
-    },
   });
 
   if (!response.ok) {

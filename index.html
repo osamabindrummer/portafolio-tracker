@@ -30,7 +30,10 @@
               Actualizar datos
             </button>
           </div>
-          <span id="last-update" class="last-update">Última actualización: --</span>
+          <span id="last-update" class="last-update" aria-live="polite">Última actualización: --</span>
+          <p id="refresh-status" class="refresh-status" role="status" aria-live="polite">
+            Preparado para actualizar cuando lo necesites.
+          </p>
         </div>
       </header>
       <main class="app-main">

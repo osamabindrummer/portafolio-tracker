@@ -321,6 +321,29 @@ a {
   letter-spacing: 0.02em;
 }
 
+.refresh-status {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted-color);
+  max-width: 24rem;
+}
+
+.refresh-status[data-state="idle"] {
+  color: var(--muted-color);
+}
+
+.refresh-status[data-state="progress"] {
+  color: var(--muted-color);
+}
+
+.refresh-status[data-state="success"] {
+  color: var(--positive-color);
+}
+
+.refresh-status[data-state="error"] {
+  color: var(--negative-color);
+}
+
 .app-main {
   flex: 1;
   padding: clamp(1.5rem, 3vw, 3rem);
