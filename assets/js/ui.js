@@ -64,22 +64,22 @@ const formatDateTime = (isoString) => {
   }
 };
 
-const describeDataEndpoint = (endpoint) => {
-  if (!endpoint) {
+const formatShortDateTime = (isoString) => {
+  if (!isoString) {
     return null;
   }
   try {
-    const url = new URL(endpoint);
-    if (url.hostname.endsWith("githubusercontent.com")) {
-      return "GitHub (raw content)";
-    }
-    if (url.hostname.endsWith("github.io")) {
-      return "GitHub Pages";
-    }
-    return url.hostname;
+    const date = new Date(isoString);
+    const pad = (value) => String(value).padStart(2, "0");
+    const day = pad(date.getDate());
+    const month = pad(date.getMonth() + 1);
+    const year = date.getFullYear();
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    return `${day}-${month}-${year}, ${hours}:${minutes} hrs`;
   } catch (error) {
-    console.warn("No se pudo interpretar el endpoint de datos", error);
-    return endpoint;
+    console.warn("No se pudo formatear la fecha corta", error);
+    return null;
   }
 };
 
@@ -459,30 +459,8 @@ export const renderUI = (state, callbacks = {}) => {
       statusText = `No se pudo actualizar: ${message}`;
       statusTone = "error";
     } else {
-      const hasGeneratedAt = Boolean(state.generatedAt);
-      const currentLabel = hasGeneratedAt ? formatDateTime(state.generatedAt) : null;
-      const previousTimestamp = state.previousGeneratedAt;
-      const hasPreviousDifference =
-        Boolean(previousTimestamp) && previousTimestamp !== state.generatedAt;
-      const sameAsPrevious =
-        Boolean(previousTimestamp) && previousTimestamp === state.generatedAt;
-      const sourceLabel = describeDataEndpoint(state.dataEndpoint);
-
-      if (!hasGeneratedAt) {
-        statusText = 'Datos cargados. Ejecuta "Actualizar datos" cuando lo desees.';
-      } else if (sameAsPrevious) {
-        statusText = `Datos generados el ${currentLabel}. No hay cambios respecto a la última versión guardada.`;
-      } else if (hasPreviousDifference) {
-        const previousLabel = formatDateTime(previousTimestamp);
-        statusText = `Datos actualizados el ${currentLabel}. Versión anterior: ${previousLabel}.`;
-      } else {
-        statusText = `Datos disponibles desde ${currentLabel}.`;
-      }
-
-      if (sourceLabel) {
-        statusText += ` Fuente: ${sourceLabel}.`;
-      }
-
+      const shortLabel = formatShortDateTime(state.generatedAt);
+      statusText = shortLabel ? `Datos del ${shortLabel}` : 'Datos cargados. Ejecuta "Actualizar datos" cuando lo desees.';
       statusTone = "success";
     }
 
