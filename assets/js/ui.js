@@ -459,8 +459,7 @@ export const renderUI = (state, callbacks = {}) => {
       statusText = `No se pudo actualizar: ${message}`;
       statusTone = "error";
     } else {
-      const shortLabel = formatShortDateTime(state.generatedAt);
-      statusText = shortLabel ? `Datos del ${shortLabel}` : 'Datos cargados. Ejecuta "Actualizar datos" cuando lo desees.';
+      statusText = 'Datos cargados correctamente. Usa "Actualizar datos" cuando lo necesites.';
       statusTone = "success";
     }
 
