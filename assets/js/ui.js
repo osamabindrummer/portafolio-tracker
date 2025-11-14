@@ -459,12 +459,18 @@ export const renderUI = (state, callbacks = {}) => {
       statusText = `No se pudo actualizar: ${message}`;
       statusTone = "error";
     } else {
-      statusText = 'Datos cargados correctamente. Usa "Actualizar datos" cuando lo necesites.';
-      statusTone = "success";
+      statusText = "";
+      statusTone = "idle";
     }
 
+    refreshStatus.hidden = stateStatus === "ready";
     refreshStatus.textContent = statusText;
-    refreshStatus.dataset.state = statusTone;
+
+    if (statusTone) {
+      refreshStatus.dataset.state = statusTone;
+    } else {
+      delete refreshStatus.dataset.state;
+    }
   }
 
   if (state.status === "loading") {
