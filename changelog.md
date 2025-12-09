@@ -1,5 +1,10 @@
 # Changelog
 
+## 2025-12-08
+- Ajustado el portafolio de Racional tras la absorción de CFMDIVO: `CFMITNIPSA` aumenta a 20 % y se elimina `CFMDIVO` en `scripts/fetch_data.py`, manteniendo la suma de pesos en 1.0 y soportando el modo offline.
+- Regenerado `data/latest.json` sin el ticker eliminado y revalidados los histogramas/series para reflejar solo cinco ETFs en la plataforma.
+- Actualizada la UI (mapa `RACIONAL_DISPLAY_NAMES`) y la documentación (`plan.md`) para describir la nueva composición del pack ETF.
+
 ## 2025-10-19
 
 ### Tarea 1

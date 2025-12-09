@@ -11,7 +11,6 @@ const RACIONAL_DISPLAY_NAMES = {
   "EEMCL.SN": "iShares MSCI Emerging Markets",
   "CFMITNIPSA.SN": "IT NOW S&P IPSA",
   "CFIETFCC.SN": "Singular Chile Corporativo",
-  "CFMDIVO.SN": "It Now S&P/CLX Chile Dividend Index",
 };
 
 const trendClass = (value) => {

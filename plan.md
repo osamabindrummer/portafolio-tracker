@@ -29,7 +29,7 @@
 
 ## 3. Obtención y actualización de datos
 ### 3.1 Inventario de tickers y pesos
-- Racional: `CFIETFGE (20%)`, `IYWCL (35%)`, `EEMCL (20%)`, `CFMITNIPSA (15%)`, `CFIETFCC (5%)`, `CFMDIVO (5%)`.
+- Racional: `CFIETFGE (20%)`, `IYWCL (35%)`, `EEMCL (20%)`, `CFMITNIPSA (20%)`, `CFIETFCC (5%)`.
 - Fintual (Risky Norris): `ESGV (28.94%)`, `FTEC (17.87%)`, `QQQM (17.16%)`, `SOXX (10.69%)`, `VGK (10.04%)`, `IAUM (7.32%)`, `KOMP (4.43%)`, `EPP (1.87%)`.
 
 ### 3.2 Flujo de generación `data/latest.json`
