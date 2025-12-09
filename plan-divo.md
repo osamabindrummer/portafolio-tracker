@@ -23,7 +23,7 @@
    - Validar que el selector de Racional muestre cinco filas y que los cálculos de `%` se formateen correctamente tras el reequilibrio.
 
 4. **Actualizar documentación y artefactos de referencia**
-   - Modificar `plan.md` (sección 3.1 "Inventario de tickers y pesos") para reflejar los nuevos pesos de Racional.
+   - Modificar `plan-inicial.md` (sección 3.1 "Inventario de tickers y pesos") para reflejar los nuevos pesos de Racional.
    - Añadir una entrada en `changelog.md` mencionando la absorción de CFMDIVO y el consecuente ajuste en el tracker.
    - Si existe otra documentación (README, notas, embeds) donde se detalle la lista de ETFs de Racional, reemplazar la mención a CFMDIVO y explicar brevemente que CFMITNIPSA ahora concentra 20 %.
 
