@@ -11,6 +11,20 @@
   </head>
   <body>
     <div id="app" class="app-shell">
+      <div
+        id="fintual-banner"
+        class="fintual-banner"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        hidden
+      >
+        <span class="sr-only" data-banner-live>Fintual: datos no disponibles.</span>
+        <div class="fintual-banner__marquee" aria-hidden="true">
+          <div class="fintual-banner__track" data-banner-track></div>
+        </div>
+        <span class="fintual-banner__timestamp" data-banner-timestamp>Actualizado --</span>
+      </div>
       <header class="app-header">
         <div class="branding">
           <span class="branding-icon" aria-hidden="true">💸</span>

@@ -171,6 +171,72 @@ a {
   flex-direction: column;
 }
 
+.fintual-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.65rem clamp(1rem, 3vw, 3rem);
+  background: linear-gradient(120deg, rgba(255, 111, 97, 0.92), rgba(255, 111, 97, 0.8));
+  color: #ffffff;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.fintual-banner__marquee {
+  flex: 1;
+  overflow: hidden;
+}
+
+.fintual-banner__track {
+  display: inline-flex;
+  gap: 3rem;
+  min-width: 100%;
+  animation: fintual-banner-scroll 22s linear infinite;
+  white-space: nowrap;
+}
+
+.fintual-banner__track[data-reduce-motion="true"] {
+  animation: none;
+  transform: translateX(0);
+}
+
+.fintual-banner__item {
+  font-size: clamp(0.85rem, 1.6vw, 1rem);
+}
+
+.fintual-banner__timestamp {
+  font-size: 0.8rem;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .fintual-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .fintual-banner__timestamp {
+    font-size: 0.75rem;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .fintual-banner {
+    border-bottom-color: rgba(255, 255, 255, 0.25);
+  }
+}
+
+@keyframes fintual-banner-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
 .app-header {
   display: flex;
   flex-wrap: wrap;

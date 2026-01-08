@@ -18,7 +18,9 @@ Sitio estático con HTML, CSS y JS para visualizar y comparar mis inversiones en
 - `assets/js/`: Lógica de UI, estado y gráficos (`app`, `state`, `ui`, `charts`).
 - `data/latest.json`: Dataset que alimenta la aplicación.
 - `scripts/fetch_data.py`: Generador del JSON (script Python).
+- `scripts/fetch_fintual_goals.js`: Script Node que baja el snapshot privado de Fintual (usa secrets).
 - `.github/workflows/`: Automatizaciones de generación de datos y despliegue en GitHub Pages.
+- `public/fintual/goals.json`: Snapshot público de los datos privados de Fintual usado por el banner.
 - `changelog.md`: Bitácora de cambios relevantes.
 
 ## Requisitos
@@ -46,6 +48,12 @@ En este proyecto no se usa `npm install` ni `npm run dev` porque no hay bundlers
 ## Automatización (GitHub Actions)
 
 - `update-data.yml`: Ejecuta `scripts/fetch_data.py`, valida el JSON y commitea el resultado (cron diario + disparo manual).
+- `fintual.yml`: Usa Node.js para consultar `/api/goals` con `FINTUAL_USER_EMAIL` + `FINTUAL_USER_TOKEN` (GitHub Secrets), guarda `public/fintual/goals.json` y lo publica con la misma cadencia del workflow de datos.
 - `deploy.yml`: Publica `index.html` y assets en GitHub Pages cada vez que se hace push a `main` o se lanza el workflow manualmente.
+
+### Secrets requeridos
+
+- `FINTUAL_USER_EMAIL`: email de tu cuenta en Fintual.
+- `FINTUAL_USER_TOKEN`: token obtenido desde la API de Fintual. Nunca se expone en el frontend.
 
 Activa GitHub Pages en **Settings → Pages** usando la opción “GitHub Actions” para que el despliegue quede operativo.

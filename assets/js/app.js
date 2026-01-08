@@ -1,8 +1,10 @@
 import { loadInitialState, reloadState, setActivePlatform } from "./state.js";
 import { renderUI } from "./ui.js";
 import { initTheme } from "./theme.js";
+import { initFintualBanner } from "./fintual-banner.js";
 
 initTheme();
+void initFintualBanner();
 
 let appState = {
   status: "loading",

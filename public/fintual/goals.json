@@ -1,0 +1,17 @@
+{
+  "data": [
+    {
+      "id": "sample-goal",
+      "type": "goals",
+      "attributes": {
+        "name": "Risky Norris",
+        "nav": 24650408.0,
+        "deposited": 18116724.0,
+        "profit": 6533684.0,
+        "currency": "CLP"
+      }
+    }
+  ],
+  "fetched_at": "2025-01-10T12:00:00Z",
+  "source_url": "https://fintual.cl/api/goals"
+}
