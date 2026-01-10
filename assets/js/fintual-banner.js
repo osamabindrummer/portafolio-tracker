@@ -35,8 +35,15 @@ const formatTimestamp = (isoString) => {
   }
 };
 
-const buildMessage = (nav, deposited, profit) =>
-  `Fintual: Saldo (${formatClp(nav)}), Depositado (${formatClp(deposited)}), Ganancia (${formatClp(profit)})`;
+const buildMessage = (nav, deposited, profit, updatedAt) => {
+  const parts = [
+    `Fintual LimnoTec: Saldo (${formatClp(nav)})`,
+    `Depositado (${formatClp(deposited)})`,
+    `Ganancia (${formatClp(profit)})`,
+    `Actualizado ${formatTimestamp(updatedAt)}`,
+  ];
+  return parts.join(" · ");
+};
 
 const shouldReduceMotion = () => {
   if (typeof window === "undefined" || !window.matchMedia) {
@@ -51,11 +58,25 @@ const populateMarquee = (trackEl, message) => {
   }
 
   trackEl.innerHTML = "";
-  for (let i = 0; i < 2; i += 1) {
+  const createItem = () => {
     const item = document.createElement("span");
     item.className = "fintual-banner__item";
     item.textContent = message;
     trackEl.appendChild(item);
+    return item;
+  };
+
+  createItem();
+
+  const marquee = trackEl.closest(".fintual-banner__marquee");
+  const marqueeWidth = marquee?.offsetWidth ?? window.innerWidth ?? 0;
+  let iterations = 1;
+  while (trackEl.scrollWidth < marqueeWidth * 2 && iterations < 10) {
+    createItem();
+    iterations += 1;
+  }
+  if (iterations === 1) {
+    createItem();
   }
 
   if (shouldReduceMotion()) {
@@ -132,7 +153,6 @@ const renderBanner = (data) => {
   }
 
   const marqueeTrack = container.querySelector("[data-banner-track]");
-  const timestampEl = container.querySelector("[data-banner-timestamp]");
   const liveRegion = container.querySelector("[data-banner-live]");
 
   const attributes = readGoalAttributes(data);
@@ -142,18 +162,14 @@ const renderBanner = (data) => {
     return;
   }
 
-  const message = buildMessage(attributes.nav, attributes.deposited, attributes.profit);
+  setBannerVisibility(container, true);
+
+  const message = buildMessage(attributes.nav, attributes.deposited, attributes.profit, attributes.updatedAt);
   populateMarquee(marqueeTrack, message);
 
   if (liveRegion) {
     liveRegion.textContent = message;
   }
-
-  if (timestampEl) {
-    timestampEl.textContent = `Actualizado ${formatTimestamp(attributes.updatedAt)}`;
-  }
-
-  setBannerVisibility(container, true);
 };
 
 export const initFintualBanner = async () => {
