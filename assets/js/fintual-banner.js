@@ -5,6 +5,8 @@ const GOALS_ENDPOINTS = [
   "../../public/fintual/goals.json",
 ];
 const CACHE_BUSTER_PARAM = "cb";
+const BANNER_OFFSET_VAR = "--fintual-banner-offset";
+let resizeHandlerAttached = false;
 
 const formatClp = (value) => {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
@@ -86,6 +88,27 @@ const populateMarquee = (trackEl, message) => {
   }
 };
 
+const syncBannerOffsetVar = (element) => {
+  if (typeof document === "undefined") {
+    return;
+  }
+  const root = document.documentElement;
+  if (!root) {
+    return;
+  }
+  const height = !element || element.hidden ? 0 : element.offsetHeight;
+  root.style.setProperty(BANNER_OFFSET_VAR, `${height}px`);
+};
+
+const attachResizeHandler = (element) => {
+  if (resizeHandlerAttached || typeof window === "undefined") {
+    return;
+  }
+  const handler = () => syncBannerOffsetVar(element);
+  window.addEventListener("resize", handler);
+  resizeHandlerAttached = true;
+};
+
 const readGoalAttributes = (payload) => {
   const goal = Array.isArray(payload?.data) ? payload.data[0] : null;
   if (!goal || !goal.attributes) {
@@ -144,6 +167,7 @@ const setBannerVisibility = (element, visible) => {
     return;
   }
   element.hidden = !visible;
+  syncBannerOffsetVar(element);
 };
 
 const renderBanner = (data) => {
@@ -166,6 +190,8 @@ const renderBanner = (data) => {
 
   const message = buildMessage(attributes.nav, attributes.deposited, attributes.profit, attributes.updatedAt);
   populateMarquee(marqueeTrack, message);
+  syncBannerOffsetVar(container);
+  attachResizeHandler(container);
 
   if (liveRegion) {
     liveRegion.textContent = message;

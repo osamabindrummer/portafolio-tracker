@@ -34,6 +34,7 @@
   --toggle-border: rgba(15, 23, 42, 0.12);
   --toggle-color: var(--text-color);
   --toggle-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+  --fintual-banner-offset: 0px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -177,12 +178,15 @@ a {
   flex-wrap: nowrap;
   gap: 1rem;
   padding: 0.65rem clamp(1rem, 3vw, 3rem);
-  background: linear-gradient(120deg, rgba(255, 111, 97, 0.92), rgba(255, 111, 97, 0.8));
+  background: linear-gradient(120deg, #ff6f61, #ff8862);
   color: #ffffff;
   font-weight: 600;
   letter-spacing: 0.01em;
   overflow: hidden;
   border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+  position: sticky;
+  top: 0;
+  z-index: 30;
 }
 
 .fintual-banner__marquee {
@@ -228,20 +232,20 @@ a {
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
-  padding: 2rem clamp(1.5rem, 3vw, 3rem);
+  gap: 0.75rem;
+  padding: 1.5rem clamp(1.5rem, 3vw, 3rem);
   background-color: var(--bg-surface);
   border-bottom: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
   position: sticky;
-  top: 0;
+  top: var(--fintual-banner-offset, 0px);
   z-index: 10;
   transition: background-color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
 }
 
 .branding h1 {
   margin: 0;
-  font-size: clamp(1.75rem, 2.5vw, 2.5rem);
+  font-size: clamp(1.5rem, 2.2vw, 2.25rem);
 }
 
 .branding {
@@ -260,30 +264,38 @@ a {
 .branding-text {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.2rem;
 }
 
 .tagline {
-  margin: 0.25rem 0 0;
+  margin: 0.1rem 0 0;
   color: var(--muted-color);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 
 .header-actions {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.6rem;
+  gap: 0.4rem;
   margin-left: auto;
   text-align: right;
+}
+
+.actions-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .theme-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.35rem;
-  padding: 0.45rem 0.9rem;
+  gap: 0.25rem;
+  padding: 0.4rem 0.85rem;
   border-radius: 999px;
   border: 1px solid var(--toggle-border);
   background-color: var(--toggle-bg);
@@ -293,7 +305,7 @@ a {
   transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease,
     transform 0.2s ease, box-shadow 0.25s ease;
   box-shadow: var(--toggle-shadow);
-  min-width: 56px;
+  min-width: 46px;
 }
 
 .theme-toggle .theme-toggle__icon--moon {
