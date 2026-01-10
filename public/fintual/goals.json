@@ -1,17 +1,17 @@
 {
   "data": [
     {
-      "id": "281010",
+      "id": "1071852",
       "type": "goal",
       "attributes": {
-        "name": "Norris",
-        "name_without_suffix": "Norris",
-        "nav": 24449332,
-        "created_at": "2021-01-10T18:17:29.111-03:00",
-        "timeframe": 36,
-        "deposited": 18116724,
+        "name": "💰 Risky Norris",
+        "name_without_suffix": "💰 Risky Norris",
+        "nav": 126893290,
+        "created_at": "2024-01-02T09:07:55.875-03:00",
+        "timeframe": 120,
+        "deposited": 100000000,
         "hidden": false,
-        "profit": 6332608,
+        "profit": 26893290,
         "investments": [
           {
             "weight": 1,
@@ -19,8 +19,8 @@
           }
         ],
         "public_link": null,
-        "param_id": 281010,
-        "goal_type": "investment",
+        "param_id": 1071852,
+        "goal_type": "other",
         "translated_goal_type": "Largo plazo",
         "regime": null,
         "completed": true,
@@ -28,51 +28,15 @@
         "eligible_for_deposits": true,
         "eligible_for_internal_mlt": true,
         "monthly_deposit": 0,
-        "simulated_deposit": 1000000,
+        "simulated_deposit": 5000000,
         "funds_source": null,
         "funds_source_description": null,
-        "not_net_deposited": 18116724,
+        "not_net_deposited": 100000000,
         "withdrawn": 0,
-        "group_goal_id": null
-      }
-    },
-    {
-      "id": "905327",
-      "type": "goal",
-      "attributes": {
-        "name": "🏦 Reserva",
-        "name_without_suffix": "🏦 Reserva",
-        "nav": 0,
-        "created_at": "2023-04-12T08:59:00.249-04:00",
-        "timeframe": 1,
-        "deposited": -116724,
-        "hidden": false,
-        "profit": 116724,
-        "investments": [
-          {
-            "weight": 1,
-            "asset_id": 15077
-          }
-        ],
-        "public_link": null,
-        "param_id": 905327,
-        "goal_type": "inbox",
-        "translated_goal_type": "Corto plazo",
-        "regime": null,
-        "completed": true,
-        "has_any_withdrawals": true,
-        "eligible_for_deposits": true,
-        "eligible_for_internal_mlt": true,
-        "monthly_deposit": 0,
-        "simulated_deposit": 0,
-        "funds_source": null,
-        "funds_source_description": null,
-        "not_net_deposited": 2450000,
-        "withdrawn": 2566724,
         "group_goal_id": null
       }
     }
   ],
-  "fetched_at": "2026-01-09T09:31:43.441Z",
+  "fetched_at": "2026-01-10T21:08:24.048Z",
   "source_url": "https://fintual.cl/api/goals"
 }
