@@ -67,6 +67,7 @@ const handleRefresh = async () => {
       activePlatformId: fallbackId,
       chartMode: currentMode,
     };
+    await initFintualBanner();
   } catch (error) {
     console.error("Error al refrescar los datos", error);
     appState = {

@@ -20,39 +20,7 @@ const formatClp = (value) => {
   return formatter.format(Number(value));
 };
 
-const formatTimestamp = (isoString) => {
-  if (!isoString) {
-    return "--";
-  }
-  try {
-    const date = new Date(isoString);
-    const formatter = new Intl.DateTimeFormat("es-CL", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
-    return formatter.format(date);
-  } catch (error) {
-    console.warn("No se pudo formatear la fecha del banner:", error);
-    return isoString;
-  }
-};
-
-const buildMessage = (nav, deposited, profit, updatedAt) => {
-  const parts = [
-    `Fintual LimnoTec: Saldo (${formatClp(nav)})`,
-    `Depositado (${formatClp(deposited)})`,
-    `Ganancia (${formatClp(profit)})`,
-    `Actualizado ${formatTimestamp(updatedAt)}`,
-  ];
-  return parts.join(" · ");
-};
-
-const shouldReduceMotion = () => {
-  if (typeof window === "undefined" || !window.matchMedia) {
-    return false;
-  }
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-};
+const buildMessage = (profit) => `Ganancias Fintual LimnoTec: ${formatClp(profit)}`;
 
 const populateMarquee = (trackEl, message) => {
   if (!trackEl) {
@@ -60,32 +28,10 @@ const populateMarquee = (trackEl, message) => {
   }
 
   trackEl.innerHTML = "";
-  const createItem = () => {
-    const item = document.createElement("span");
-    item.className = "fintual-banner__item";
-    item.textContent = message;
-    trackEl.appendChild(item);
-    return item;
-  };
-
-  createItem();
-
-  const marquee = trackEl.closest(".fintual-banner__marquee");
-  const marqueeWidth = marquee?.offsetWidth ?? window.innerWidth ?? 0;
-  let iterations = 1;
-  while (trackEl.scrollWidth < marqueeWidth * 2 && iterations < 10) {
-    createItem();
-    iterations += 1;
-  }
-  if (iterations === 1) {
-    createItem();
-  }
-
-  if (shouldReduceMotion()) {
-    trackEl.dataset.reduceMotion = "true";
-  } else {
-    trackEl.dataset.reduceMotion = "false";
-  }
+  const item = document.createElement("span");
+  item.className = "fintual-banner__item";
+  item.textContent = message;
+  trackEl.appendChild(item);
 };
 
 const syncBannerOffsetVar = (element) => {
@@ -117,10 +63,7 @@ const readGoalAttributes = (payload) => {
 
   const attributes = goal.attributes;
   return {
-    nav: attributes.nav ?? null,
-    deposited: attributes.deposited ?? null,
     profit: attributes.profit ?? null,
-    updatedAt: payload?.fetched_at ?? attributes.updated_at ?? null,
   };
 };
 
@@ -188,7 +131,7 @@ const renderBanner = (data) => {
 
   setBannerVisibility(container, true);
 
-  const message = buildMessage(attributes.nav, attributes.deposited, attributes.profit, attributes.updatedAt);
+  const message = buildMessage(attributes.profit);
   populateMarquee(marqueeTrack, message);
   syncBannerOffsetVar(container);
   attachResizeHandler(container);
