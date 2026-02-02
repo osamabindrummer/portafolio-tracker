@@ -6,12 +6,12 @@
       "attributes": {
         "name": "💰 Risky Norris",
         "name_without_suffix": "💰 Risky Norris",
-        "nav": 124971345,
+        "nav": 123193285,
         "created_at": "2024-01-02T09:07:55.875-03:00",
         "timeframe": 120,
         "deposited": 100000000,
         "hidden": false,
-        "profit": 24971345,
+        "profit": 23193285,
         "investments": [
           {
             "weight": 1,
@@ -37,6 +37,6 @@
       }
     }
   ],
-  "fetched_at": "2026-01-30T09:42:05.083Z",
+  "fetched_at": "2026-02-02T09:55:23.223Z",
   "source_url": "https://fintual.cl/api/goals"
 }
