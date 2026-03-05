@@ -383,14 +383,14 @@ const setupRefreshButton = (state, callback) => {
     return;
   }
 
-  const isReady = state.status === "ready";
   const isRefreshing = state.status === "refreshing";
+  const isLoading = state.status === "loading";
 
-  const shouldDisable = !isReady || isRefreshing;
+  const shouldDisable = isLoading || isRefreshing;
 
   refreshButton.disabled = shouldDisable;
-  refreshButton.textContent = isRefreshing ? "Actualizando..." : "Actualizar datos";
   refreshButton.classList.toggle("is-loading", isRefreshing);
+  refreshButton.dataset.state = state.status ?? "loading";
 
   if (callback) {
     refreshButton.onclick = () => callback();
@@ -441,14 +441,14 @@ export const renderUI = (state, callbacks = {}) => {
 
   if (refreshStatus) {
     const stateStatus = state.status ?? "loading";
-    let statusText = "Preparado para actualizar cuando lo necesites.";
+    let statusText = "Buscará la versión más reciente ya publicada en GitHub Pages.";
     let statusTone = "idle";
 
     if (stateStatus === "loading") {
       statusText = "Cargando datos iniciales...";
       statusTone = "progress";
     } else if (stateStatus === "refreshing") {
-      statusText = "Actualizando datos del portafolio...";
+      statusText = "Forzando una nueva lectura del JSON publicado...";
       statusTone = "progress";
     } else if (stateStatus === "error") {
       const message =
@@ -458,11 +458,10 @@ export const renderUI = (state, callbacks = {}) => {
       statusText = `No se pudo actualizar: ${message}`;
       statusTone = "error";
     } else {
-      statusText = "";
+      statusText = "Haz clic para volver a consultar el dato publicado.";
       statusTone = "idle";
     }
 
-    refreshStatus.hidden = stateStatus === "ready";
     refreshStatus.textContent = statusText;
 
     if (statusTone) {

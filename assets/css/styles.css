@@ -173,6 +173,8 @@ a {
 }
 
 .fintual-banner {
+  appearance: none;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -188,6 +190,25 @@ a {
   position: sticky;
   top: 0;
   z-index: 30;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  cursor: pointer;
+  transition: filter 0.18s ease;
+}
+
+.fintual-banner:hover {
+  filter: brightness(1.04);
+}
+
+.fintual-banner:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.95);
+  outline-offset: -3px;
+}
+
+.fintual-banner:disabled {
+  cursor: progress;
+  filter: saturate(0.9);
 }
 
 .fintual-banner__marquee {
@@ -325,47 +346,6 @@ a {
 .theme-toggle__icon {
   font-size: 1.1rem;
   line-height: 1;
-}
-
-.actions-buttons {
-  display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.header-button {
-  padding: 0.6rem 1.25rem;
-  border-radius: 999px;
-  border: none;
-  font-weight: 600;
-  font-size: 0.95rem;
-  color: #ffffff;
-  cursor: pointer;
-  transition: transform 0.1s ease, opacity 0.1s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 160px;
-  box-shadow: 0 8px 18px rgba(10, 132, 255, 0.2);
-}
-
-.header-button:hover {
-  opacity: 0.92;
-}
-
-.header-button:active {
-  transform: scale(0.98);
-}
-
-.header-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.65;
-  box-shadow: none;
-}
-
-.header-button.refresh-button {
-  background-color: #0a84ff;
 }
 
 .last-update {
@@ -824,15 +804,6 @@ tbody tr:nth-child(even) {
     text-align: center;
   }
 
-  .actions-buttons {
-    justify-content: center;
-  }
-
-  .actions-buttons .header-button {
-    flex: 0 1 240px;
-    min-width: 160px;
-  }
-
   .chart-platform-select,
   .chart-mode-select {
     min-width: 0;
@@ -885,20 +856,6 @@ tbody tr:nth-child(even) {
 
   .theme-toggle {
     align-self: center;
-  }
-
-  .actions-buttons {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    width: 100%;
-    justify-content: center;
-  }
-
-  .header-button {
-    width: auto;
-    flex: 1 1 220px;
-    max-width: 260px;
   }
 
   .chart-platform-select,

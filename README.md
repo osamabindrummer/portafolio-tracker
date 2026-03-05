@@ -47,9 +47,9 @@ En este proyecto no se usa `npm install` ni `npm run dev` porque no hay bundlers
 
 ## Automatización (GitHub Actions)
 
-- `update-data.yml`: Ejecuta `scripts/fetch_data.py`, valida el JSON y commitea el resultado (cron diario + disparo manual).
-- `fintual.yml`: Usa Node.js para consultar `/api/goals` con `FINTUAL_USER_EMAIL` + `FINTUAL_USER_TOKEN` (GitHub Secrets), guarda `public/fintual/goals.json` y lo publica con la misma cadencia del workflow de datos.
-- `deploy.yml`: Publica `index.html` y assets en GitHub Pages cada vez que se hace push a `main` o se lanza el workflow manualmente.
+- `update-data.yml`: Ejecuta `scripts/fetch_data.py`, valida el JSON, commitea `data/latest.json` y publica GitHub Pages en el mismo workflow (cron diario + disparo manual).
+- `fintual.yml`: Usa Node.js para consultar `/api/goals` con `FINTUAL_USER_EMAIL` + `FINTUAL_USER_TOKEN` (GitHub Secrets), guarda `public/fintual/goals.json` y publica GitHub Pages en el mismo workflow.
+- `deploy.yml`: Publica `index.html` y assets en GitHub Pages cada vez que se hace push a `main` o se lanza el workflow manualmente para cambios de frontend/estructura.
 
 ### Secrets requeridos
 

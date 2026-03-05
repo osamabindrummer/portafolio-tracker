@@ -17,6 +17,22 @@ const render = () => {
     onRefresh: handleRefresh,
     onChartModeChange: handleChartModeChange,
   });
+  syncFintualBannerRefresh();
+};
+
+const syncFintualBannerRefresh = () => {
+  const banner = document.getElementById("fintual-banner");
+  if (!banner) {
+    return;
+  }
+
+  const isBusy = appState.status === "loading" || appState.status === "refreshing";
+  banner.disabled = isBusy;
+  banner.onclick = () => {
+    if (!isBusy) {
+      void handleRefresh();
+    }
+  };
 };
 
 const bootstrap = async () => {
@@ -48,11 +64,11 @@ const handlePlatformChange = (platformId) => {
 };
 
 const handleRefresh = async () => {
-  if (appState.status !== "ready") {
+  if (appState.status === "loading" || appState.status === "refreshing") {
     return;
   }
 
-  const preferredPlatformId = appState.activePlatformId;
+  const preferredPlatformId = appState.activePlatformId ?? null;
   const currentMode = appState.chartMode ?? "return_1y";
   appState = { ...appState, status: "refreshing" };
   render();
