@@ -72,6 +72,24 @@ Queda preparado para automatizar refresh sin depender de GitHub Actions. En Hobb
 
 - `PORTFOLIO_STORAGE=local`
 
+### Cómo obtener un nuevo token de Fintual
+
+Si en algún momento necesitas regenerar `FINTUAL_USER_TOKEN`, puedes pedirlo desde la terminal con este comando:
+
+```bash
+curl -sS -X POST "https://fintual.cl/api/access_tokens" \
+  -H "Content-Type: application/json" \
+  -d '{"user":{"email":"TU_EMAIL","password":"TU_PASSWORD"}}'
+```
+
+Qué deberías ver:
+- una respuesta JSON con un bloque como `"token":"..."`
+
+Importante:
+- no guardes tu contraseña en el repo
+- usa ese token nuevo para actualizar `FINTUAL_USER_TOKEN` en Vercel
+- después de cambiarlo, vuelve a desplegar con `vercel --prod`
+
 ## Desarrollo local
 
 ### Prechecks
