@@ -1,9 +1,5 @@
-const GOALS_ENDPOINTS = [
-  "/fintual/goals.json",
-  "../../fintual/goals.json",
-  "/public/fintual/goals.json",
-  "../../public/fintual/goals.json",
-];
+const GOALS_ENDPOINT = "/api/fintual/goals";
+const REFRESH_ENDPOINT = "/api/refresh-fintual";
 const CACHE_BUSTER_PARAM = "cb";
 const BANNER_OFFSET_VAR = "--fintual-banner-offset";
 let resizeHandlerAttached = false;
@@ -80,29 +76,15 @@ const resolveEndpoint = (endpoint) => {
   return new URL(endpoint, import.meta.url);
 };
 
-const fetchWithFallback = async () => {
-  const errors = [];
-  for (const endpoint of GOALS_ENDPOINTS) {
-    try {
-      const url = resolveEndpoint(endpoint);
-      const cacheBuster = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      url.searchParams.set(CACHE_BUSTER_PARAM, cacheBuster);
-      const response = await fetch(url.toString(), { cache: "no-store" });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      errors.push({ endpoint, error });
-    }
+const fetchGoals = async () => {
+  const url = resolveEndpoint(GOALS_ENDPOINT);
+  const cacheBuster = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  url.searchParams.set(CACHE_BUSTER_PARAM, cacheBuster);
+  const response = await fetch(url.toString(), { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
   }
-
-  const messages = errors
-    .map(({ endpoint, error }) => `${endpoint}: ${error instanceof Error ? error.message : String(error)}`)
-    .join(" · ");
-
-  throw new Error(messages || "No se pudo consultar goals.json");
+  return response.json();
 };
 
 const setBannerVisibility = (element, visible) => {
@@ -154,10 +136,41 @@ export const initFintualBanner = async () => {
   setBannerVisibility(container, false);
 
   try {
-    const data = await fetchWithFallback();
+    const data = await fetchGoals();
     renderBanner(data);
   } catch (error) {
     console.warn("No se pudo cargar el banner de Fintual:", error);
     setBannerVisibility(container, false);
   }
+};
+
+export const refreshFintualBanner = async ({ force = false } = {}) => {
+  const response = await fetch(REFRESH_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ force }),
+  });
+
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch (error) {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    const message =
+      typeof payload?.message === "string" && payload.message.trim().length
+        ? payload.message
+        : `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+
+  await initFintualBanner();
+  return payload ?? {
+    status: "updated",
+    message: "El banner fue actualizado.",
+  };
 };

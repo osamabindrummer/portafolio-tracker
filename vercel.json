@@ -1,0 +1,28 @@
+{
+  "functions": {
+    "api/**/*.py": {
+      "maxDuration": 60,
+      "includeFiles": "public/fintual/goals.json"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/refresh-data",
+      "destination": "/api/refresh_data"
+    },
+    {
+      "source": "/api/refresh-fintual",
+      "destination": "/api/refresh_fintual"
+    },
+    {
+      "source": "/api/refresh-all",
+      "destination": "/api/refresh_all"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/refresh",
+      "schedule": "0 9 * * 1,3,5"
+    }
+  ]
+}

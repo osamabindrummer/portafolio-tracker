@@ -115,7 +115,7 @@ const renderLoading = ({ metricsGrid, tablesContainer, lastUpdate }) => {
         <article class="metrics-card">
           <span class="metric-label">Cargando datos...</span>
           <strong class="metric-value">⏳</strong>
-          <span class="metric-footnote">Leyendo data/latest.json</span>
+          <span class="metric-footnote">Leyendo /api/data/latest</span>
         </article>
       </div>
     `;
@@ -441,14 +441,14 @@ export const renderUI = (state, callbacks = {}) => {
 
   if (refreshStatus) {
     const stateStatus = state.status ?? "loading";
-    let statusText = "Buscará la versión más reciente ya publicada en GitHub Pages.";
+    let statusText = "El botón pedirá una actualización real al backend de Vercel.";
     let statusTone = "idle";
 
     if (stateStatus === "loading") {
       statusText = "Cargando datos iniciales...";
       statusTone = "progress";
     } else if (stateStatus === "refreshing") {
-      statusText = "Forzando una nueva lectura del JSON publicado...";
+      statusText = "Solicitando una actualización real al backend...";
       statusTone = "progress";
     } else if (stateStatus === "error") {
       const message =
@@ -457,8 +457,11 @@ export const renderUI = (state, callbacks = {}) => {
           : "Error desconocido al cargar los datos.";
       statusText = `No se pudo actualizar: ${message}`;
       statusTone = "error";
+    } else if (typeof state.statusMessage === "string" && state.statusMessage.trim().length) {
+      statusText = state.statusMessage.trim();
+      statusTone = "idle";
     } else {
-      statusText = "Haz clic para volver a consultar el dato publicado.";
+      statusText = "Haz clic para pedir un refresh real del backend y luego recargar la vista.";
       statusTone = "idle";
     }
 

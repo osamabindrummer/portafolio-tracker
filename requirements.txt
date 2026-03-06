@@ -1,3 +1,4 @@
 yfinance>=0.2.40
 pandas>=1.5
 numpy>=1.24
+vercel>=0.5.1
