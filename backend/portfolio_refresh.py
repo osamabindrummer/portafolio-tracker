@@ -8,6 +8,7 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from typing import Any, Dict
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from backend.storage import GOALS_DATASET, LATEST_DATASET, StorageMeta, read_dataset, write_dataset
@@ -73,38 +74,20 @@ def fetch_goals_payload() -> tuple[Dict[str, Any], StorageMeta]:
 def fetch_fintual_goals_payload() -> Dict[str, Any]:
     email = _read_required_env("FINTUAL_USER_EMAIL", aliases=("FINTUAL_USER", "FINTUAL_USERNAME"))
     token = _read_required_env("FINTUAL_USER_TOKEN")
-    request = Request(
-        FINTUAL_API_URL,
-        headers={
-            "Accept": "application/json",
-            "Accept-Language": "es-CL,es;q=0.9,en;q=0.8",
-            "Cache-Control": "no-cache",
-            "Pragma": "no-cache",
-            "X-User-Email": email,
-            "X-User-Token": token,
-            "User-Agent": (
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/122.0.0.0 Safari/537.36"
-            ),
-        },
-        method="GET",
-    )
+    raw_payload = None
+    last_error = None
 
-    try:
-        with urlopen(request, timeout=30) as response:
-            raw_payload = json.loads(response.read().decode("utf-8"))
-    except HTTPError as error:
-        if error.code == 401:
-            raise RuntimeError(
-                "La API de Fintual respondió HTTP 401. Revisa en Vercel que el email o usuario "
-                "esté cargado en FINTUAL_USER_EMAIL o FINTUAL_USER, y que FINTUAL_USER_TOKEN siga vigente."
-            ) from error
-        raise RuntimeError(f"La API de Fintual respondió HTTP {error.code}.") from error
-    except (URLError, TimeoutError) as error:
-        raise RuntimeError("No se pudo conectar con la API de Fintual.") from error
-    except json.JSONDecodeError as error:
-        raise RuntimeError("La respuesta de Fintual no es JSON válido.") from error
+    for auth_mode in ("headers", "query"):
+        try:
+            raw_payload = _request_fintual_goals(email=email, token=token, auth_mode=auth_mode)
+            break
+        except RuntimeError as error:
+            last_error = error
+            if "HTTP 401" not in str(error):
+                raise
+
+    if raw_payload is None:
+        raise RuntimeError(str(last_error) if last_error else "No se pudo consultar la API de Fintual.")
 
     if not isinstance(raw_payload, dict) or not isinstance(raw_payload.get("data"), list):
         raise RuntimeError("La respuesta de Fintual no tiene el formato esperado.")
@@ -114,6 +97,61 @@ def fetch_fintual_goals_payload() -> Dict[str, Any]:
         "fetched_at": _iso_now(),
         "source_url": FINTUAL_API_URL,
     }
+
+
+def _request_fintual_goals(*, email: str, token: str, auth_mode: str) -> Dict[str, Any]:
+    request = _build_fintual_request(email=email, token=token, auth_mode=auth_mode)
+
+    try:
+        with urlopen(request, timeout=30) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except HTTPError as error:
+        details = _read_http_error_details(error)
+        if error.code == 401:
+            raise RuntimeError(
+                "La API de Fintual respondió HTTP 401 "
+                f"(modo={auth_mode}, email={_mask_secret(email)}, token={_mask_secret(token)}, detalle={details})."
+            ) from error
+        raise RuntimeError(f"La API de Fintual respondió HTTP {error.code} (modo={auth_mode}, detalle={details}).") from error
+    except (URLError, TimeoutError) as error:
+        raise RuntimeError(f"No se pudo conectar con la API de Fintual (modo={auth_mode}).") from error
+    except json.JSONDecodeError as error:
+        raise RuntimeError(f"La respuesta de Fintual no es JSON válido (modo={auth_mode}).") from error
+
+
+def _build_fintual_request(*, email: str, token: str, auth_mode: str) -> Request:
+    base_headers = {
+        "Accept": "application/json",
+        "Accept-Language": "es-CL,es;q=0.9,en;q=0.8",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/122.0.0.0 Safari/537.36"
+        ),
+    }
+
+    if auth_mode == "headers":
+        return Request(
+            FINTUAL_API_URL,
+            headers={
+                **base_headers,
+                "X-User-Email": email,
+                "X-User-Token": token,
+            },
+            method="GET",
+        )
+
+    if auth_mode == "query":
+        query = urlencode({"user_email": email, "user_token": token})
+        return Request(
+            f"{FINTUAL_API_URL}?{query}",
+            headers=base_headers,
+            method="GET",
+        )
+
+    raise RuntimeError(f"Modo de autenticación de Fintual no soportado: {auth_mode}.")
 
 
 def _safe_read_payload(dataset) -> Dict[str, Any] | None:
@@ -153,7 +191,7 @@ def _read_cooldown_seconds() -> int:
 def _read_required_env(name: str, aliases: tuple[str, ...] = ()) -> str:
     candidate_names = (name, *aliases)
     for candidate in candidate_names:
-        value = os.getenv(candidate, "").strip()
+        value = _normalize_env_value(os.getenv(candidate, ""))
         if value:
             return value
 
@@ -161,6 +199,35 @@ def _read_required_env(name: str, aliases: tuple[str, ...] = ()) -> str:
     if aliases_text:
         raise RuntimeError(f"Falta la variable de entorno requerida: {name}. También se aceptan: {aliases_text}.")
     raise RuntimeError(f"Falta la variable de entorno requerida: {name}.")
+
+
+def _normalize_env_value(value: str) -> str:
+    normalized = str(value).strip()
+    if len(normalized) >= 2 and normalized[0] == normalized[-1] and normalized[0] in {'"', "'"}:
+        return normalized[1:-1].strip()
+    return normalized
+
+
+def _mask_secret(value: str) -> str:
+    normalized = _normalize_env_value(value)
+    if not normalized:
+        return "vacío"
+    if len(normalized) <= 6:
+        return f"{normalized[0]}***{normalized[-1]}"
+    return f"{normalized[:3]}***{normalized[-3:]}"
+
+
+def _read_http_error_details(error: HTTPError) -> str:
+    try:
+        body = error.read().decode("utf-8", errors="replace").strip()
+    except Exception:
+        return "sin cuerpo"
+
+    if not body:
+        return "sin cuerpo"
+
+    compact = " ".join(body.split())
+    return compact[:240]
 
 
 def _iso_now() -> str:
