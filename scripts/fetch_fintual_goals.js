@@ -27,19 +27,15 @@ const readEnv = (name) => {
 };
 
 const fetchGoals = async (email, token) => {
-  const url = new URL(API_BASE_URL);
-  url.searchParams.set("user_email", email);
-  url.searchParams.set("user_token", token);
-
-  const sanitizedUrl = `${url.origin}${url.pathname}`;
-
-  console.info(`Consultando ${sanitizedUrl}…`);
+  console.info(`Consultando ${API_BASE_URL}…`);
 
   let response;
   try {
-    response = await fetch(url.toString(), {
+    response = await fetch(API_BASE_URL, {
       headers: {
         Accept: "application/json",
+        "X-User-Email": email,
+        "X-User-Token": token,
       },
     });
   } catch (error) {

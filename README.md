@@ -34,7 +34,8 @@ Queda preparado para automatizar refresh sin depender de GitHub Actions. En Hobb
 2. Esos endpoints leen desde Vercel Blob.
 3. Si Blob todavía no tiene datos, se usa el JSON versionado dentro del repo como fallback.
 4. Al hacer clic en `Actualizar datos`, la web llama `/api/refresh-all`.
-5. Al hacer clic en el banner de Fintual, la web llama `/api/refresh-fintual`.
+5. Por defecto, ese refresh general no vuelve a consultar Fintual para no depender de su API privada.
+6. Al hacer clic en el banner de Fintual, la web llama `/api/refresh-fintual`.
 6. Las credenciales privadas viven sólo en variables de entorno del backend.
 
 ## Seguridad y límites reales
@@ -67,6 +68,13 @@ Queda preparado para automatizar refresh sin depender de GitHub Actions. En Hobb
 ### Recomendadas
 
 - `REFRESH_COOLDOWN_SECONDS`
+- `FINTUAL_USER`
+
+Notas:
+- el backend acepta `FINTUAL_USER_EMAIL` como nombre principal
+- si en Vercel ya guardaste `FINTUAL_USER`, ahora también se leerá como alias
+- `refresh-all` no incluye Fintual salvo que definas `REFRESH_ALL_INCLUDES_FINTUAL=true`
+- el cron no refresca Fintual salvo que definas `CRON_REFRESH_FINTUAL=true`
 
 ### Opcionales para desarrollo local
 

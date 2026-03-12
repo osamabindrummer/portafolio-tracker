@@ -8,7 +8,6 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from typing import Any, Dict
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from backend.storage import GOALS_DATASET, LATEST_DATASET, StorageMeta, read_dataset, write_dataset
@@ -72,16 +71,17 @@ def fetch_goals_payload() -> tuple[Dict[str, Any], StorageMeta]:
 
 
 def fetch_fintual_goals_payload() -> Dict[str, Any]:
-    email = _read_required_env("FINTUAL_USER_EMAIL")
+    email = _read_required_env("FINTUAL_USER_EMAIL", aliases=("FINTUAL_USER", "FINTUAL_USERNAME"))
     token = _read_required_env("FINTUAL_USER_TOKEN")
-    query = urlencode({"user_email": email, "user_token": token})
     request = Request(
-        f"{FINTUAL_API_URL}?{query}",
+        FINTUAL_API_URL,
         headers={
             "Accept": "application/json",
             "Accept-Language": "es-CL,es;q=0.9,en;q=0.8",
             "Cache-Control": "no-cache",
             "Pragma": "no-cache",
+            "X-User-Email": email,
+            "X-User-Token": token,
             "User-Agent": (
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -95,6 +95,11 @@ def fetch_fintual_goals_payload() -> Dict[str, Any]:
         with urlopen(request, timeout=30) as response:
             raw_payload = json.loads(response.read().decode("utf-8"))
     except HTTPError as error:
+        if error.code == 401:
+            raise RuntimeError(
+                "La API de Fintual respondió HTTP 401. Revisa en Vercel que el email o usuario "
+                "esté cargado en FINTUAL_USER_EMAIL o FINTUAL_USER, y que FINTUAL_USER_TOKEN siga vigente."
+            ) from error
         raise RuntimeError(f"La API de Fintual respondió HTTP {error.code}.") from error
     except (URLError, TimeoutError) as error:
         raise RuntimeError("No se pudo conectar con la API de Fintual.") from error
@@ -145,11 +150,17 @@ def _read_cooldown_seconds() -> int:
     return max(0, value)
 
 
-def _read_required_env(name: str) -> str:
-    value = os.getenv(name, "").strip()
-    if not value:
-        raise RuntimeError(f"Falta la variable de entorno requerida: {name}.")
-    return value
+def _read_required_env(name: str, aliases: tuple[str, ...] = ()) -> str:
+    candidate_names = (name, *aliases)
+    for candidate in candidate_names:
+        value = os.getenv(candidate, "").strip()
+        if value:
+            return value
+
+    aliases_text = ", ".join(aliases)
+    if aliases_text:
+        raise RuntimeError(f"Falta la variable de entorno requerida: {name}. También se aceptan: {aliases_text}.")
+    raise RuntimeError(f"Falta la variable de entorno requerida: {name}.")
 
 
 def _iso_now() -> str:
