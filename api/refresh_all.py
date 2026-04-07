@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 
 from backend.http import ApiHandler, first_param, get_query_params, is_truthy, read_json_body, send_error_json, send_json
-from backend.portfolio_refresh import refresh_fintual_goals, refresh_latest_dataset
+from backend.portfolio_refresh import refresh_indicators_dataset, refresh_latest_dataset
 
 
 class handler(ApiHandler):
@@ -19,10 +19,10 @@ class handler(ApiHandler):
 
         mode = first_param(query, "mode") or str(body.get("mode", "online")).strip().lower() or "online"
         force = is_truthy(first_param(query, "force")) or is_truthy(body.get("force"))
-        include_goals = _should_refresh_fintual(query, body)
+        include_indicators = _should_refresh_indicators(query, body)
 
         latest_result = None
-        goals_result = None
+        indicators_result = None
         errors = {}
 
         try:
@@ -30,23 +30,23 @@ class handler(ApiHandler):
         except Exception as error:  # pragma: no cover - depende de APIs externas
             errors["latest"] = str(error)
 
-        if include_goals:
+        if include_indicators:
             try:
-                goals_result = refresh_fintual_goals(force=force)
+                indicators_result = refresh_indicators_dataset(force=force)
             except Exception as error:  # pragma: no cover - depende de APIs externas
-                errors["goals"] = str(error)
+                errors["indicators"] = str(error)
 
-        if latest_result is None and goals_result is None:
+        if latest_result is None and indicators_result is None:
             send_error_json(self, 500, "Ningún dataset pudo actualizarse correctamente.")
             return
 
-        statuses = {result.status for result in (latest_result, goals_result) if result is not None}
+        statuses = {result.status for result in (latest_result, indicators_result) if result is not None}
         payload = {
             "status": "updated" if "updated" in statuses else "skipped",
             "message": "Actualización completa finalizada." if not errors else "Actualización parcial finalizada.",
             "results": {
                 "latest": latest_result.to_dict() if latest_result else None,
-                "goals": goals_result.to_dict() if goals_result else None,
+                "indicators": indicators_result.to_dict() if indicators_result else None,
             },
         }
         if errors:
@@ -56,15 +56,15 @@ class handler(ApiHandler):
         send_json(self, status_code, payload)
 
 
-def _should_refresh_fintual(query: dict[str, list[str]], body: dict[str, object]) -> bool:
-    requested = first_param(query, "includeGoals")
-    if requested is None and "includeGoals" in body:
-        requested = str(body.get("includeGoals"))
+def _should_refresh_indicators(query: dict[str, list[str]], body: dict[str, object]) -> bool:
+    requested = first_param(query, "includeIndicators")
+    if requested is None and "includeIndicators" in body:
+        requested = str(body.get("includeIndicators"))
 
     if requested is not None:
         return is_truthy(requested)
 
-    raw_default = os.getenv("REFRESH_ALL_INCLUDES_FINTUAL", "").strip().lower()
+    raw_default = os.getenv("REFRESH_ALL_INCLUDES_INDICATORS", "true").strip().lower()
     if not raw_default:
         return False
 

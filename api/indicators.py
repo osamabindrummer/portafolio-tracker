@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from backend.http import ApiHandler, send_error_json, send_json
-from backend.portfolio_refresh import fetch_goals_payload
+from backend.portfolio_refresh import fetch_indicators_payload
 
 
 class handler(ApiHandler):
@@ -9,9 +9,9 @@ class handler(ApiHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         try:
-            payload, meta = fetch_goals_payload()
+            payload, meta = fetch_indicators_payload()
         except Exception as error:  # pragma: no cover - depende del entorno
-            send_error_json(self, 500, f"No se pudo cargar el snapshot de Fintual: {error}")
+            send_error_json(self, 500, f"No se pudo cargar el snapshot de indicadores: {error}")
             return
 
         send_json(

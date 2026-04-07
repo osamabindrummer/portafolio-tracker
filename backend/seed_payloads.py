@@ -2,45 +2,46 @@
 
 from __future__ import annotations
 
-FINTUAL_GOALS_SEED = {
-    "data": [
+INDICATORS_SEED = {
+    "items": [
         {
-            "id": "1071852",
-            "type": "goal",
-            "attributes": {
-                "name": "💰 Risky Norris",
-                "name_without_suffix": "💰 Risky Norris",
-                "nav": 126028841,
-                "created_at": "2024-01-02T09:07:55.875-03:00",
-                "timeframe": 120,
-                "deposited": 100000000,
-                "hidden": False,
-                "profit": 26028841,
-                "investments": [
-                    {
-                        "weight": 1,
-                        "asset_id": 186,
-                    }
-                ],
-                "public_link": None,
-                "param_id": 1071852,
-                "goal_type": "other",
-                "translated_goal_type": "Largo plazo",
-                "regime": None,
-                "completed": True,
-                "has_any_withdrawals": False,
-                "eligible_for_deposits": True,
-                "eligible_for_internal_mlt": True,
-                "monthly_deposit": 0,
-                "simulated_deposit": 5000000,
-                "funds_source": None,
-                "funds_source_description": None,
-                "not_net_deposited": 100000000,
-                "withdrawn": 0,
-                "group_goal_id": None,
-            },
-        }
+            "key": "uf",
+            "label": "UF",
+            "series_id": "F073.UFF.PRE.Z.D",
+            "value": 39841.72,
+            "unit": "CLP",
+            "decimals": 2,
+            "observed_at": "2026-04-07",
+        },
+        {
+            "key": "utm",
+            "label": "UTM",
+            "series_id": "F073.UTR.PRE.Z.M",
+            "value": 69889.0,
+            "unit": "CLP",
+            "decimals": 1,
+            "observed_at": "2026-04-01",
+        },
+        {
+            "key": "dollar_observed",
+            "label": "Dólar observado",
+            "series_id": "F073.TCO.PRE.Z.D",
+            "value": 914.47,
+            "unit": "CLP",
+            "decimals": 2,
+            "observed_at": "2026-04-07",
+        },
+        {
+            "key": "ipc_annual",
+            "label": "IPC anual",
+            "series_id": "F074.IPC.IND.Z.EP09.C.M",
+            "value": 2.4,
+            "unit": "PERCENT",
+            "decimals": 1,
+            "observed_at": "2026-02-01",
+        },
     ],
-    "fetched_at": "2026-03-04T09:45:17.352Z",
-    "source_url": "https://fintual.cl/api/goals",
+    "fetched_at": "2026-04-07T12:00:00Z",
+    "source": "seed",
+    "source_url": "https://mindicador.cl/api",
 }

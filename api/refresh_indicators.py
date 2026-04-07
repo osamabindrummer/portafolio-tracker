@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from backend.http import ApiHandler, first_param, get_query_params, is_truthy, read_json_body, send_error_json, send_json
-from backend.portfolio_refresh import refresh_fintual_goals
+from backend.portfolio_refresh import refresh_indicators_dataset
 
 
 class handler(ApiHandler):
@@ -18,9 +18,9 @@ class handler(ApiHandler):
         force = is_truthy(first_param(query, "force")) or is_truthy(body.get("force"))
 
         try:
-            result = refresh_fintual_goals(force=force)
+            result = refresh_indicators_dataset(force=force)
         except Exception as error:  # pragma: no cover - depende de APIs externas
-            send_error_json(self, 500, f"No se pudo actualizar goals.json: {error}")
+            send_error_json(self, 500, f"No se pudo actualizar indicators/latest.json: {error}")
             return
 
         status_code = 200 if result.status == "updated" else 202

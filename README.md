@@ -1,18 +1,18 @@
 # Portafolio Tracker
 
-Sitio estático con HTML, CSS y JS para visualizar y comparar inversiones de Racional y Fintual. Desde esta migración, el hosting principal pasa a ser **Vercel** y las actualizaciones ya no dependen de GitHub Pages para servir los JSON públicos.
+Sitio estático con HTML, CSS y JS para visualizar y comparar inversiones de Racional y Fintual. El hosting principal es **Vercel** y los datasets públicos se sirven desde funciones y almacenamiento persistente.
 
 ## Estado actual de la arquitectura
 
 - `index.html` y `assets/`: frontend estático servido por Vercel.
 - `api/data/latest`: entrega el dataset principal usado por la app.
-- `api/fintual/goals`: entrega el snapshot del banner de Fintual.
+- `api/indicators`: entrega el snapshot del banner económico.
 - `api/refresh-data`: regenera `latest.json` en backend.
-- `api/refresh-fintual`: vuelve a consultar Fintual en backend.
+- `api/refresh-indicators`: vuelve a consultar fuentes públicas en backend.
 - `api/refresh-all`: refresca ambos flujos con una sola llamada.
 - `api/cron/refresh`: endpoint pensado para Vercel Cron.
 - `Vercel Blob`: persistencia de los JSON generados en producción.
-- `data/latest.json` y `public/fintual/goals.json`: quedan como semillas locales y fallback inicial.
+- `data/latest.json` y `public/indicators/latest.json`: quedan como semillas locales y fallback inicial.
 
 ## Por qué esta combinación
 
@@ -30,17 +30,16 @@ Queda preparado para automatizar refresh sin depender de GitHub Actions. En Hobb
 
 ## Flujo de datos en producción
 
-1. El frontend carga `/api/data/latest` y `/api/fintual/goals`.
+1. El frontend carga `/api/data/latest` y `/api/indicators`.
 2. Esos endpoints leen desde Vercel Blob.
 3. Si Blob todavía no tiene datos, se usa el JSON versionado dentro del repo como fallback.
 4. Al hacer clic en `Actualizar datos`, la web llama `/api/refresh-all`.
-5. Por defecto, ese refresh general no vuelve a consultar Fintual para no depender de su API privada.
-6. Al hacer clic en el banner de Fintual, la web llama `/api/refresh-fintual`.
-6. Las credenciales privadas viven sólo en variables de entorno del backend.
+5. Por defecto, ese refresh general también intenta refrescar el banner económico.
+6. Al hacer clic en el banner económico, la web llama `/api/refresh-indicators`.
+7. El backend consulta fuentes públicas y guarda un snapshot normalizado.
 
 ## Seguridad y límites reales
 
-- `FINTUAL_USER_EMAIL` y `FINTUAL_USER_TOKEN` no salen al frontend.
 - El endpoint público de refresh no expone secretos, pero al ser público no puede distinguir entre tu clic y el de otro visitante.
 - Para reducir abuso, el backend aplica un enfriamiento configurable con `REFRESH_COOLDOWN_SECONDS`.
 - Si en el futuro quieres que sólo tú puedas refrescar manualmente, habrá que añadir autenticación real.
@@ -49,9 +48,9 @@ Queda preparado para automatizar refresh sin depender de GitHub Actions. En Hobb
 
 - `assets/js/app.js`: coordina carga, refresh global y refresh del banner.
 - `assets/js/state.js`: consume `/api/data/latest` y `/api/refresh-all`.
-- `assets/js/fintual-banner.js`: consume `/api/fintual/goals` y `/api/refresh-fintual`.
+- `assets/js/indicators-banner.js`: consume `/api/indicators` y `/api/refresh-indicators`.
 - `backend/storage.py`: decide si usa archivos locales o Vercel Blob.
-- `backend/portfolio_refresh.py`: lógica de refresh y enfriamiento.
+- `backend/portfolio_refresh.py`: lógica de refresh, fallback entre fuentes públicas y enfriamiento.
 - `api/`: funciones serverless de Vercel.
 - `vercel.json`: rewrites, funciones y cron.
 - `.env.example`: plantilla de variables.
@@ -61,42 +60,35 @@ Queda preparado para automatizar refresh sin depender de GitHub Actions. En Hobb
 ### Requeridas en Vercel
 
 - `BLOB_READ_WRITE_TOKEN`
-- `FINTUAL_USER_EMAIL`
-- `FINTUAL_USER_TOKEN`
 - `CRON_SECRET`
 
 ### Recomendadas
 
 - `REFRESH_COOLDOWN_SECONDS`
-- `FINTUAL_USER`
+- `REFRESH_ALL_INCLUDES_INDICATORS=true`
+- `CRON_REFRESH_INDICATORS=true`
 
 Notas:
-- el backend acepta `FINTUAL_USER_EMAIL` como nombre principal
-- si en Vercel ya guardaste `FINTUAL_USER`, ahora también se leerá como alias
-- `refresh-all` no incluye Fintual salvo que definas `REFRESH_ALL_INCLUDES_FINTUAL=true`
-- el cron no refresca Fintual salvo que definas `CRON_REFRESH_FINTUAL=true`
+- `refresh-all` refresca indicadores por defecto, salvo que definas `REFRESH_ALL_INCLUDES_INDICATORS=false`
+- el cron refresca indicadores por defecto, salvo que definas `CRON_REFRESH_INDICATORS=false`
 
 ### Opcionales para desarrollo local
 
 - `PORTFOLIO_STORAGE=local`
 
-### Cómo obtener un nuevo token de Fintual
+### Indicadores usados en el banner
 
-Si en algún momento necesitas regenerar `FINTUAL_USER_TOKEN`, puedes pedirlo desde la terminal con este comando:
+- UF: `F073.UFF.PRE.Z.D`
+- UTM: `F073.UTR.PRE.Z.M`
+- Dólar observado: `F073.TCO.PRE.Z.D`
+- IPC anual: `F074.IPC.IND.Z.EP09.C.M`
 
-```bash
-curl -sS -X POST "https://fintual.cl/api/access_tokens" \
-  -H "Content-Type: application/json" \
-  -d '{"user":{"email":"TU_EMAIL","password":"TU_PASSWORD"}}'
-```
+### Flujo de fuentes públicas
 
-Qué deberías ver:
-- una respuesta JSON con un bloque como `"token":"..."`
-
-Importante:
-- no guardes tu contraseña en el repo
-- usa ese token nuevo para actualizar `FINTUAL_USER_TOKEN` en Vercel
-- después de cambiarlo, vuelve a desplegar con `vercel --prod`
+1. El backend intenta primero `https://mindicador.cl/api`.
+2. Si falla, intenta `https://findic.cl/api`.
+3. Calcula `IPC anual` a partir de los últimos 12 IPC mensuales de la fuente activa.
+4. Normaliza el resultado a un JSON estable para el frontend.
 
 ## Desarrollo local
 
@@ -155,7 +147,7 @@ open http://127.0.0.1:3000
 Qué deberías ver:
 - La app abre normal.
 - El botón intenta llamar a `/api/refresh-all`.
-- Si no configuraste Fintual, el refresh combinado puede quedar parcial y eso es esperado.
+- Si una fuente pública falla, el backend intentará la siguiente.
 
 ### Verificación rápida local
 
@@ -163,7 +155,7 @@ Qué deberías ver:
 .venv/bin/python -m compileall backend api scripts
 node --check assets/js/app.js
 node --check assets/js/state.js
-node --check assets/js/fintual-banner.js
+node --check assets/js/indicators-banner.js
 node --check assets/js/ui.js
 ```
 
@@ -232,8 +224,6 @@ Qué deberías ver:
 
 ```bash
 vercel env add BLOB_READ_WRITE_TOKEN production
-vercel env add FINTUAL_USER_EMAIL production
-vercel env add FINTUAL_USER_TOKEN production
 vercel env add CRON_SECRET production
 vercel env add REFRESH_COOLDOWN_SECONDS production
 ```
@@ -267,35 +257,22 @@ Qué deberías ver:
 3. Asociar un Blob Store al proyecto.
 4. Crear estas variables de entorno:
    - `BLOB_READ_WRITE_TOKEN`
-   - `FINTUAL_USER_EMAIL`
-   - `FINTUAL_USER_TOKEN`
    - `CRON_SECRET`
    - `REFRESH_COOLDOWN_SECONDS`
 5. Confirmar que el cron de `vercel.json` quede habilitado después del deploy.
-6. Revisar en Logs que `/api/refresh-all` y `/api/refresh-fintual` respondan sin error.
+6. Revisar en Logs que `/api/refresh-all` y `/api/refresh-indicators` respondan sin error.
 
-## Qué hacer con GitHub Pages
+## GitHub Actions
 
-Después de confirmar que Vercel está bien en producción:
-
-1. Ve a GitHub `Settings -> Pages`.
-2. Desactiva GitHub Pages o déjalo sin fuente activa.
-3. Mantén los workflows manuales sólo como respaldo temporal, si quieres.
-
-## GitHub Actions después de la migración
-
-Los workflows de GitHub ya no redeployan Pages:
-
-- `deploy.yml`: queda manual y sólo valida.
-- `update-data.yml`: queda manual para refrescar `data/latest.json` si quieres mantener la semilla del repo.
-- `fintual.yml`: queda manual para refrescar `public/fintual/goals.json` si quieres mantener la semilla del repo.
+- `update-data.yml`: queda manual para refrescar `data/latest.json` si quieres mantener la semilla del repo desde GitHub.
+- No quedan workflows para Pages ni para el banner antiguo.
 
 ## Endpoints resultantes
 
 - `GET /api/data/latest`
-- `GET /api/fintual/goals`
+- `GET /api/indicators`
 - `POST /api/refresh-data`
-- `POST /api/refresh-fintual`
+- `POST /api/refresh-indicators`
 - `POST /api/refresh-all`
 - `GET /api/cron/refresh`
 
@@ -303,7 +280,6 @@ Los workflows de GitHub ya no redeployan Pages:
 
 - El sitio carga desde Vercel.
 - `Actualizar datos` devuelve una actualización real o un `skipped` razonable por enfriamiento.
-- El banner de Fintual refresca sin exponer credenciales.
-- `data/latest` y `fintual/goals` responden desde `/api/...`.
+- El banner económico refresca sin exponer credenciales.
+- `data/latest` e `indicators/latest` responden desde `/api/...`.
 - Blob recibe nuevas versiones de JSON.
-- GitHub Pages deja de ser el hosting principal.

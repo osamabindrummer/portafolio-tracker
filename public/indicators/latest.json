@@ -1,0 +1,39 @@
+{
+  "items": [
+    {
+      "key": "uf",
+      "label": "UF",
+      "value": 39841.72,
+      "unit": "CLP",
+      "decimals": 2,
+      "observed_at": "2026-04-07"
+    },
+    {
+      "key": "utm",
+      "label": "UTM",
+      "value": 69889.0,
+      "unit": "CLP",
+      "decimals": 1,
+      "observed_at": "2026-04-01"
+    },
+    {
+      "key": "dollar_observed",
+      "label": "Dólar observado",
+      "value": 914.47,
+      "unit": "CLP",
+      "decimals": 2,
+      "observed_at": "2026-04-07"
+    },
+    {
+      "key": "ipc_annual",
+      "label": "IPC anual",
+      "value": 3.4,
+      "unit": "PERCENT",
+      "decimals": 1,
+      "observed_at": "2025-12-01"
+    }
+  ],
+  "fetched_at": "2026-04-07T15:14:03Z",
+  "source": "mindicador",
+  "source_url": "https://mindicador.cl/api"
+}

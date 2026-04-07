@@ -1,10 +1,10 @@
 import { loadInitialState, reloadState, setActivePlatform, triggerPortfolioRefresh } from "./state.js";
 import { renderUI } from "./ui.js";
 import { initTheme } from "./theme.js";
-import { initFintualBanner, refreshFintualBanner } from "./fintual-banner.js";
+import { initIndicatorsBanner, refreshIndicatorsBanner } from "./indicators-banner.js";
 
 initTheme();
-void initFintualBanner();
+void initIndicatorsBanner();
 
 let appState = {
   status: "loading",
@@ -18,11 +18,11 @@ const render = () => {
     onRefresh: handleRefresh,
     onChartModeChange: handleChartModeChange,
   });
-  syncFintualBannerRefresh();
+  syncIndicatorsBannerRefresh();
 };
 
-const syncFintualBannerRefresh = () => {
-  const banner = document.getElementById("fintual-banner");
+const syncIndicatorsBannerRefresh = () => {
+  const banner = document.getElementById("macro-banner");
   if (!banner) {
     return;
   }
@@ -32,7 +32,7 @@ const syncFintualBannerRefresh = () => {
   banner.setAttribute("aria-busy", isBusy ? "true" : "false");
   banner.onclick = () => {
     if (!isBusy) {
-      void handleFintualRefresh();
+      void handleIndicatorsRefresh();
     }
   };
 };
@@ -92,7 +92,7 @@ const handleRefresh = async () => {
       chartMode: currentMode,
       statusMessage: buildRefreshMessage(refreshResult),
     };
-    await initFintualBanner();
+    await initIndicatorsBanner();
   } catch (error) {
     console.error("Error al refrescar los datos", error);
     appState = {
@@ -106,7 +106,7 @@ const handleRefresh = async () => {
   render();
 };
 
-const handleFintualRefresh = async () => {
+const handleIndicatorsRefresh = async () => {
   if (isBannerRefreshing || appState.status === "loading" || appState.status === "refreshing") {
     return;
   }
@@ -114,24 +114,24 @@ const handleFintualRefresh = async () => {
   isBannerRefreshing = true;
   appState = {
     ...appState,
-    statusMessage: "Actualizando las metas de Fintual desde el backend...",
+    statusMessage: "Actualizando indicadores públicos desde el backend...",
   };
   render();
 
   try {
-    const result = await refreshFintualBanner();
+    const result = await refreshIndicatorsBanner();
     appState = {
       ...appState,
       statusMessage: buildBannerRefreshMessage(result),
     };
   } catch (error) {
-    console.error("Error al refrescar el banner de Fintual", error);
+    console.error("Error al refrescar el banner de indicadores", error);
     appState = {
       ...appState,
       statusMessage:
         error instanceof Error
-          ? `No se pudo actualizar Fintual: ${error.message}`
-          : "No se pudo actualizar Fintual.",
+          ? `No se pudo actualizar el banner: ${error.message}`
+          : "No se pudo actualizar el banner.",
     };
   } finally {
     isBannerRefreshing = false;
@@ -153,13 +153,13 @@ const buildRefreshMessage = (result) => {
   }
 
   const latestStatus = result?.results?.latest?.status ?? null;
-  const goalsStatus = result?.results?.goals?.status ?? null;
+  const indicatorsStatus = result?.results?.indicators?.status ?? null;
 
-  if (latestStatus === "updated" || goalsStatus === "updated") {
+  if (latestStatus === "updated" || indicatorsStatus === "updated") {
     return "La web pidió una actualización real y ya está mostrando la versión más reciente.";
   }
 
-  if (latestStatus === "skipped" && goalsStatus === "skipped") {
+  if (latestStatus === "skipped" && indicatorsStatus === "skipped") {
     return "El backend respondió que ambos datasets ya estaban frescos, por eso no regeneró nada.";
   }
 
@@ -168,10 +168,10 @@ const buildRefreshMessage = (result) => {
 
 const buildBannerRefreshMessage = (result) => {
   if (result?.status === "updated") {
-    return "El banner de Fintual se actualizó con un refresh real del backend.";
+    return "El banner de indicadores se actualizó con un refresh real del backend.";
   }
   if (result?.status === "skipped") {
-    return "Fintual ya había sido actualizado hace poco, así que el backend evitó repetir la consulta.";
+    return "Los indicadores ya estaban frescos, así que el backend evitó repetir la consulta.";
   }
   return "El banner terminó su refresh, pero sin un detalle adicional.";
 };

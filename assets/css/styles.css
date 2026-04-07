@@ -34,7 +34,7 @@
   --toggle-border: rgba(15, 23, 42, 0.12);
   --toggle-color: var(--text-color);
   --toggle-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
-  --fintual-banner-offset: 0px;
+  --macro-banner-offset: 0px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -172,18 +172,18 @@ a {
   flex-direction: column;
 }
 
-.fintual-banner {
+.macro-banner {
   appearance: none;
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   flex-wrap: nowrap;
   gap: 0.5rem;
   padding: 0.75rem clamp(1rem, 3vw, 3rem);
   background-color: #2559cf;
   color: #ffffff;
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: 0.01em;
   overflow: hidden;
   border-bottom: 1px solid rgba(255, 255, 255, 0.25);
@@ -197,40 +197,60 @@ a {
   transition: filter 0.18s ease;
 }
 
-.fintual-banner:hover {
+.macro-banner:hover {
   filter: brightness(1.04);
 }
 
-.fintual-banner:focus-visible {
+.macro-banner:focus-visible {
   outline: 3px solid rgba(255, 255, 255, 0.95);
   outline-offset: -3px;
 }
 
-.fintual-banner:disabled {
+.macro-banner:disabled {
   cursor: progress;
   filter: saturate(0.9);
 }
 
-.fintual-banner__marquee {
-  min-width: 100%;
+.macro-banner__marquee {
+  min-width: 0;
+  width: 100%;
   flex: 1;
   display: flex;
-  justify-content: center;
+  overflow: hidden;
 }
 
-.fintual-banner__track {
-  display: inline-flex;
-  justify-content: center;
-  width: 100%;
+.macro-banner__track {
+  display: flex;
+  width: max-content;
   white-space: nowrap;
+  will-change: transform;
+  animation: macro-banner-scroll 28s linear infinite;
 }
 
-.fintual-banner__item {
+.macro-banner__item {
+  flex: none;
   font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+  padding-right: 3rem;
+}
+
+@keyframes macro-banner-scroll {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .macro-banner__track {
+    animation: none;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
-  .fintual-banner {
+  .macro-banner {
     background-color: #2559cf;
     color: #ffffff;
     border-bottom-color: rgba(255, 255, 255, 0.25);
@@ -248,7 +268,7 @@ a {
   border-bottom: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
   position: sticky;
-  top: var(--fintual-banner-offset, 0px);
+  top: var(--macro-banner-offset, 0px);
   z-index: 10;
   transition: background-color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
 }

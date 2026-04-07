@@ -11,7 +11,7 @@ from typing import Any, Dict, Tuple
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
-from backend.seed_payloads import FINTUAL_GOALS_SEED
+from backend.seed_payloads import INDICATORS_SEED
 
 try:
     from vercel.blob import BlobClient, list_objects
@@ -45,10 +45,10 @@ LATEST_DATASET = DatasetConfig(
     timestamp_field="generated_at",
 )
 
-GOALS_DATASET = DatasetConfig(
-    key="goals",
-    local_path=BASE_DIR / "public" / "fintual" / "goals.json",
-    blob_prefix="portfolio/fintual-goals",
+INDICATORS_DATASET = DatasetConfig(
+    key="indicators",
+    local_path=BASE_DIR / "public" / "indicators" / "latest.json",
+    blob_prefix="portfolio/indicators",
     timestamp_field="fetched_at",
 )
 
@@ -63,8 +63,8 @@ def read_dataset(config: DatasetConfig) -> Tuple[Dict[str, Any], StorageMeta]:
         payload = _read_from_local_file(config.local_path)
         return payload, StorageMeta(source="local", pathname=_display_path(config.local_path))
 
-    if config.key == GOALS_DATASET.key:
-        return FINTUAL_GOALS_SEED, StorageMeta(source="embedded-seed", pathname="backend/seed_payloads.py")
+    if config.key == INDICATORS_DATASET.key:
+        return INDICATORS_SEED, StorageMeta(source="embedded-seed", pathname="backend/seed_payloads.py")
 
     raise FileNotFoundError(f"No existe {config.local_path}")
 

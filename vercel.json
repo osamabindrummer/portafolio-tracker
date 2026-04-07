@@ -2,7 +2,7 @@
   "functions": {
     "api/**/*.py": {
       "maxDuration": 60,
-      "includeFiles": "public/fintual/goals.json"
+      "includeFiles": "public/indicators/latest.json"
     }
   },
   "rewrites": [
@@ -11,8 +11,8 @@
       "destination": "/api/refresh_data"
     },
     {
-      "source": "/api/refresh-fintual",
-      "destination": "/api/refresh_fintual"
+      "source": "/api/refresh-indicators",
+      "destination": "/api/refresh_indicators"
     },
     {
       "source": "/api/refresh-all",
