@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portafolio Tracker</title>
-    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="assets/css/styles.css?v=20260908">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   </head>
   <body>
@@ -24,7 +24,12 @@
       </button>
       <header class="app-header">
         <div class="branding">
-          <span class="branding-icon" aria-hidden="true">💸</span>
+          <img
+            class="branding-mark"
+            src="assets/img/portfolio-mark.png"
+            alt=""
+            aria-hidden="true"
+          >
           <div class="branding-text">
             <h1>Portafolio Tracker</h1>
             <p class="tagline">Seguimiento unificado de Racional y Fintual</p>
@@ -42,9 +47,6 @@
             </button>
           </div>
           <span id="last-update" class="last-update" aria-live="polite">Última actualización: --</span>
-          <p id="refresh-status" class="refresh-status" role="status" aria-live="polite">
-            Preparado para actualizar cuando lo necesites.
-          </p>
         </div>
       </header>
       <main class="app-main">
@@ -91,117 +93,11 @@
               Pulso de mis acciones individuales en Racional.
             </p>
           </div>
-          <div class="market-embed-wrapper">
-            <!-- TradingView Widget BEGIN -->
-            <div class="tradingview-widget-container">
-              <div class="tradingview-widget-container__widget"></div>
-              <div class="tradingview-widget-copyright">
-                <a href="https://es.tradingview.com/" rel="noopener nofollow" target="_blank">
-                  <span class="blue-text">Track all markets on TradingView</span>
-                </a>
-              </div>
-              <script
-                type="text/javascript"
-                src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js"
-                async
-              >
-{
-"lineWidth": 2,
-"lineType": 0,
-"chartType": "area",
-"fontColor": "rgb(106, 109, 120)",
-"gridLineColor": "rgba(46, 46, 46, 0.06)",
-"volumeUpColor": "rgba(34, 171, 148, 0.5)",
-"volumeDownColor": "rgba(247, 82, 95, 0.5)",
-"backgroundColor": "#ffffff",
-"widgetFontColor": "#0F0F0F",
-"upColor": "#22ab94",
-"downColor": "#f7525f",
-"borderUpColor": "#22ab94",
-"borderDownColor": "#f7525f",
-"wickUpColor": "#22ab94",
-"wickDownColor": "#f7525f",
-"colorTheme": "light",
-"isTransparent": false,
-"locale": "es",
-"chartOnly": false,
-"scalePosition": "right",
-"scaleMode": "Normal",
-"fontFamily": "-apple-system, BlinkMacSystemFont, Trebuchet MS, Roboto, Ubuntu, sans-serif",
-"valuesTracking": "1",
-"changeMode": "price-and-percent",
-"symbols": [
-  [
-    "NASDAQ:NVDA|1D|USD"
-  ],
-  [
-    "NASDAQ:AAPL|1D|USD"
-  ],
-  [
-    "NASDAQ:SOXX|1D|USD"
-  ],
-  [
-    "NASDAQ:SMH|1D|USD"
-  ],
-  [
-    "NASDAQ:INTC|1D|USD"
-  ],
-  [
-    "NASDAQ:ARM|1D|USD"
-  ],
-  [
-    "AMEX:VTI|1D|USD"
-  ],
-  [
-    "NASDAQ:AMD|1D|USD"
-  ],
-  [
-    "CBOE:ESGV|1D|USD"
-  ],
-  [
-    "AMEX:BLOK|1D|USD"
-  ],
-  [
-    "NYSE:KO|1D|USD"
-  ],
-  [
-    "NYSE:PHO|1D|USD"
-  ],
-  [
-    "NASDAQ:HERO|1D|USD"
-  ],
-  [
-    "NASDAQ:RIOT|1D|USD"
-  ],
-  [
-    "NYSEARCA:BITO|1D|USD"
-  ],
-  [
-    "NASDAQ:MARA|1D|USD"
-  ]
-],
-"dateRanges": [
-  "1d|1",
-  "1m|30",
-  "3m|60",
-  "12m|1D",
-  "60m|1W",
-  "all|1M"
-],
-"fontSize": "10",
-"headerFontSize": "medium",
-"autosize": true,
-"width": "100%",
-"height": "100%",
-"noTimeScale": false,
-"hideDateRanges": false,
-"hideMarketStatus": false,
-"hideSymbolLogo": false
-}
-              </script>
-            </div>
-            <!-- TradingView Widget END -->
-          </div>
+          <div
+            id="tradingview-widget"
+            class="market-embed-wrapper"
+            aria-label="Resumen de mercado de TradingView"
+          ></div>
         </section>
       </main>
       <footer class="app-footer">
@@ -212,6 +108,6 @@
         </p>
       </footer>
     </div>
-    <script type="module" src="assets/js/app.js"></script>
+    <script type="module" src="assets/js/app.js?v=20260908"></script>
   </body>
 </html>

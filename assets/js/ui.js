@@ -2,7 +2,19 @@ import { createCharts } from "./charts.js";
 
 const PLATFORM_LOGOS = {
   racional: "assets/img/racional.png",
+  racional_107_lir: "assets/img/racional.png",
   fintual: "assets/img/fintual.png",
+};
+
+const PLATFORM_OPTION_LABELS = {
+  racional: "Racional Pack ETF",
+  racional_107_lir: "Racional Pack 107 LIR",
+  fintual: "Fintual Risky Norris",
+};
+
+const PLATFORM_SUBTITLES = {
+  racional: "Pack ETF",
+  racional_107_lir: "Pack 107 LIR",
 };
 
 const RACIONAL_DISPLAY_NAMES = {
@@ -172,6 +184,7 @@ const buildPlatformMetricRow = (platform, currency) => {
   const return5Y = summary.avg_return_5y ?? computeWeightedReturn5Y(platform);
   const platformId = platform.id ?? "";
   const logoSrc = PLATFORM_LOGOS[platformId] ?? null;
+  const platformSubtitle = PLATFORM_SUBTITLES[platformId] ?? null;
   const platformMeta = `${platform.holdings?.length ?? 0} activos · Moneda ${currency}`;
 
   const cards = [
@@ -211,7 +224,10 @@ const buildPlatformMetricRow = (platform, currency) => {
     >
       ${
         logoSrc
-          ? `<img src="${logoSrc}" alt="" aria-hidden="true" class="platform-logo" />
+          ? `<div class="platform-identity">
+               <img src="${logoSrc}" alt="" aria-hidden="true" class="platform-logo" />
+               ${platformSubtitle ? `<span class="platform-subtitle">${platformSubtitle}</span>` : ""}
+             </div>
              <span class="sr-only">${platform.name}</span>`
           : `<strong class="metric-value">${platform.name}</strong>`
       }
@@ -263,7 +279,11 @@ const buildHoldingsRows = (platform) => {
       const return5Y = metrics.return_5y ?? null;
 
       const ticker = holding.ticker ?? "--";
-      const tickerLink = ticker && ticker !== "--" ? `https://finance.yahoo.com/quote/${encodeURIComponent(ticker)}/` : null;
+      const quoteSymbol = holding.quote_symbol ?? ticker;
+      const tickerLink =
+        ticker && ticker !== "--"
+          ? `https://finance.yahoo.com/quote/${encodeURIComponent(quoteSymbol)}/`
+          : null;
       const racionalDisplayName = platform.id === "racional" ? RACIONAL_DISPLAY_NAMES[ticker] : null;
       const displayName = racionalDisplayName ?? holding.display_name ?? "--";
 
@@ -331,7 +351,7 @@ const buildHoldingsTables = (state) => {
     return `<div class="table-placeholder">No hay plataformas para mostrar.</div>`;
   }
 
-  const preferredOrder = ["racional", "fintual"];
+  const preferredOrder = ["racional", "racional_107_lir", "fintual"];
   const ordered = [...platforms].sort((a, b) => {
     const indexA = preferredOrder.indexOf(a.id);
     const indexB = preferredOrder.indexOf(b.id);
@@ -362,7 +382,7 @@ const setupChartPlatformSelect = (state, callback) => {
   chartPlatformSelect.innerHTML = platforms
     .map(
       (platform) => `
-        <option value="${platform.id}">${platform.name}</option>
+        <option value="${platform.id}">${PLATFORM_OPTION_LABELS[platform.id] ?? platform.name}</option>
       `
     )
     .join("\n");

@@ -284,11 +284,11 @@ a {
   gap: 1rem;
 }
 
-.branding-icon {
-  font-size: clamp(3.5rem, 5vw, 4.5rem);
-  line-height: 1;
-  display: flex;
-  align-items: center;
+.branding-mark {
+  width: clamp(3.5rem, 5vw, 4.5rem);
+  height: clamp(3.5rem, 5vw, 4.5rem);
+  object-fit: contain;
+  flex: 0 0 auto;
 }
 
 .branding-text {
@@ -372,29 +372,6 @@ a {
   font-size: 0.75rem;
   color: var(--muted-color);
   letter-spacing: 0.02em;
-}
-
-.refresh-status {
-  margin: 0;
-  font-size: 0.8rem;
-  color: var(--muted-color);
-  max-width: 24rem;
-}
-
-.refresh-status[data-state="idle"] {
-  color: var(--muted-color);
-}
-
-.refresh-status[data-state="progress"] {
-  color: var(--muted-color);
-}
-
-.refresh-status[data-state="success"] {
-  color: var(--positive-color);
-}
-
-.refresh-status[data-state="error"] {
-  color: var(--negative-color);
 }
 
 .app-main {
@@ -507,6 +484,25 @@ a {
   height: auto;
   object-fit: contain;
   filter: drop-shadow(0 8px 22px rgba(15, 23, 42, 0.16));
+}
+
+.platform-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+}
+
+.platform-subtitle {
+  display: block;
+  color: #475569;
+  font-size: clamp(0.72rem, 1.4vw, 0.9rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 @media (min-width: 900px) {

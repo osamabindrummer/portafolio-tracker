@@ -2,8 +2,10 @@ import { loadInitialState, reloadState, setActivePlatform, triggerPortfolioRefre
 import { renderUI } from "./ui.js";
 import { initTheme } from "./theme.js";
 import { initIndicatorsBanner, refreshIndicatorsBanner } from "./indicators-banner.js";
+import { initMarketWidget } from "./market-widget.js";
 
 initTheme();
+initMarketWidget();
 void initIndicatorsBanner();
 
 let appState = {

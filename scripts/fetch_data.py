@@ -76,6 +76,47 @@ PLATFORM_CONFIG: Dict[str, Dict] = {
             ),
         ],
     },
+    "racional_107_lir": {
+        "name": "Racional - Pack 107 LIR",
+        "color": "#0B57D0",
+        "holdings": [
+            HoldingConfig(
+                ticker="CFINASDAQ",
+                weight=0.30,
+                fetch_symbol="CFINASDAQ.SN",
+                display_name="Nasdaq 100",
+                currency="CLP",
+            ),
+            HoldingConfig(
+                ticker="CFISPETF",
+                weight=0.30,
+                fetch_symbol="CFISPETF.SN",
+                display_name="S&P 500",
+                currency="CLP",
+            ),
+            HoldingConfig(
+                ticker="CFIETFGE",
+                weight=0.25,
+                fetch_symbol="CFIETFGE.SN",
+                display_name="Global Equities",
+                currency="CLP",
+            ),
+            HoldingConfig(
+                ticker="CFIETFIPSA",
+                weight=0.10,
+                fetch_symbol="CFIETFIPSA.SN",
+                display_name="IPSA",
+                currency="CLP",
+            ),
+            HoldingConfig(
+                ticker="CFIETFEM",
+                weight=0.05,
+                fetch_symbol="CFIETFEM.SN",
+                display_name="Emerging Markets",
+                currency="CLP",
+            ),
+        ],
+    },
     "fintual": {
         "name": "Fintual",
         "color": "#FF6F61",
@@ -147,6 +188,11 @@ SAMPLE_BEHAVIOR: Dict[str, Dict[str, float]] = {
     "EEMCL.SN": {"base_price": 32_000, "annual_return": 0.08, "volatility": 0.04},
     "CFMITNIPSA.SN": {"base_price": 21_000, "annual_return": 0.05, "volatility": 0.025},
     "CFIETFCC.SN": {"base_price": 18_500, "annual_return": 0.045, "volatility": 0.02},
+    "CFINASDAQ": {"base_price": 1_500, "annual_return": 0.12, "volatility": 0.05},
+    "CFISPETF": {"base_price": 1_300, "annual_return": 0.10, "volatility": 0.04},
+    "CFIETFGE": {"base_price": 1_900, "annual_return": 0.06, "volatility": 0.03},
+    "CFIETFIPSA": {"base_price": 1_000, "annual_return": 0.05, "volatility": 0.025},
+    "CFIETFEM": {"base_price": 900, "annual_return": 0.08, "volatility": 0.04},
     "ESGV": {"base_price": 83.0, "annual_return": 0.11, "volatility": 0.045},
     "FTEC": {"base_price": 130.0, "annual_return": 0.15, "volatility": 0.06},
     "QQQM": {"base_price": 140.0, "annual_return": 0.16, "volatility": 0.08},
@@ -341,6 +387,7 @@ def build_payload(
                 holdings_output.append(
                     {
                         "ticker": holding.ticker,
+                        "quote_symbol": holding.fetch_symbol,
                         "display_name": holding.display_name,
                         "platform_id": platform_id,
                         "weight": holding.weight,
@@ -357,6 +404,7 @@ def build_payload(
                 holdings_output.append(
                     {
                         "ticker": holding.ticker,
+                        "quote_symbol": holding.fetch_symbol,
                         "display_name": holding.display_name,
                         "platform_id": platform_id,
                         "weight": holding.weight,
@@ -394,6 +442,7 @@ def build_payload(
             holdings_output.append(
                 {
                     "ticker": holding.ticker,
+                    "quote_symbol": holding.fetch_symbol,
                     "display_name": holding.display_name,
                     "platform_id": platform_id,
                     "weight": holding.weight,
