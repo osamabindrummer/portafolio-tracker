@@ -1,7 +1,7 @@
 import { loadInitialState, reloadState, setActivePlatform, triggerPortfolioRefresh } from "./state.js";
 import { renderUI } from "./ui.js";
 import { initTheme } from "./theme.js";
-import { initIndicatorsBanner, refreshIndicatorsBanner } from "./indicators-banner.js";
+import { initIndicatorsBanner, refreshIndicatorsBanner } from "./indicators-banner.js?v=20260914-2";
 import { initMarketWidget } from "./market-widget.js";
 
 initTheme();

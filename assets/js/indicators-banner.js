@@ -44,8 +44,34 @@ const formatIndicatorValue = (item) => {
   return formatNumber(item.value, item.decimals ?? 0);
 };
 
-const buildMessage = (items) =>
-  items.map((item) => `${item.label}: ${formatIndicatorValue(item)}`).join(" · ");
+const formatFetchedAt = (value) => {
+  if (!value) {
+    return "Fecha y hora de actualización no disponibles";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Fecha y hora de actualización no disponibles";
+  }
+
+  return new Intl.DateTimeFormat("es-CL", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "America/Santiago",
+  }).format(date);
+};
+
+const buildMessage = (items, fetchedAt) =>
+  [`Actualizado: ${formatFetchedAt(fetchedAt)}`, ...items.map((item) => `${item.label}: ${formatIndicatorValue(item)}`)].join(
+    " · ",
+  );
+
+const createMarqueeItem = (message) => {
+  const item = document.createElement("span");
+  item.className = "macro-banner__item";
+  item.textContent = `${message} ·`;
+  return item;
+};
 
 const populateMarquee = (trackEl, message) => {
   if (!trackEl) {
@@ -53,12 +79,20 @@ const populateMarquee = (trackEl, message) => {
   }
 
   trackEl.innerHTML = "";
-  for (let index = 0; index < 2; index += 1) {
-    const item = document.createElement("span");
-    item.className = "macro-banner__item";
-    item.textContent = message;
-    trackEl.appendChild(item);
+  const sequence = document.createElement("div");
+  sequence.className = "macro-banner__sequence";
+  sequence.appendChild(createMarqueeItem(message));
+  trackEl.appendChild(sequence);
+
+  const viewportWidth = trackEl.parentElement?.clientWidth ?? 0;
+  const itemWidth = sequence.firstElementChild?.getBoundingClientRect().width ?? 0;
+  const repetitions = itemWidth > 0 ? Math.max(2, Math.ceil(viewportWidth / itemWidth) + 1) : 2;
+
+  for (let index = 1; index < repetitions; index += 1) {
+    sequence.appendChild(createMarqueeItem(message));
   }
+
+  trackEl.appendChild(sequence.cloneNode(true));
 };
 
 const syncBannerOffsetVar = (element) => {
@@ -133,7 +167,7 @@ const renderBanner = (data) => {
 
   setBannerVisibility(container, true);
 
-  const message = buildMessage(items);
+  const message = buildMessage(items, data?.fetched_at);
   populateMarquee(marqueeTrack, message);
   syncBannerOffsetVar(container);
   attachResizeHandler(container);

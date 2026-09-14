@@ -227,10 +227,14 @@ a {
   animation: macro-banner-scroll 28s linear infinite;
 }
 
+.macro-banner__sequence {
+  display: flex;
+  flex: none;
+}
+
 .macro-banner__item {
   flex: none;
   font-size: clamp(0.95rem, 1.8vw, 1.1rem);
-  padding-right: 3rem;
 }
 
 @keyframes macro-banner-scroll {

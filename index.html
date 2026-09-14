@@ -57,6 +57,26 @@
           </div>
           <div id="metrics-cards" class="metrics-grid"></div>
         </section>
+        <section id="tables" class="table-panel" aria-labelledby="table-title">
+          <div class="section-header">
+            <h2 id="table-title">💹 Detalle de holdings</h2>
+            <p class="section-subtitle">Ticker, peso y métricas clave</p>
+          </div>
+          <div id="holdings-tables" class="tables-grid" role="group" aria-describedby="table-title"></div>
+        </section>
+        <section id="market-embed" class="market-panel" aria-labelledby="market-title">
+          <div class="section-header">
+            <h2 id="market-title">🎯 Mercado</h2>
+            <p class="section-subtitle">
+              Pulso de mis acciones individuales en Racional.
+            </p>
+          </div>
+          <div
+            id="tradingview-widget"
+            class="market-embed-wrapper"
+            aria-label="Resumen de mercado de TradingView"
+          ></div>
+        </section>
         <section id="charts" class="charts-panel" aria-labelledby="charts-title">
           <div class="section-header">
             <h2 id="charts-title">📊 Gráficos</h2>
@@ -79,26 +99,6 @@
             </article>
           </div>
         </section>
-        <section id="tables" class="table-panel" aria-labelledby="table-title">
-          <div class="section-header">
-            <h2 id="table-title">💹 Detalle de holdings</h2>
-            <p class="section-subtitle">Ticker, peso y métricas clave</p>
-          </div>
-          <div id="holdings-tables" class="tables-grid" role="group" aria-describedby="table-title"></div>
-        </section>
-        <section id="market-embed" class="market-panel" aria-labelledby="market-title">
-          <div class="section-header">
-            <h2 id="market-title">🎯 Mercado</h2>
-            <p class="section-subtitle">
-              Pulso de mis acciones individuales en Racional.
-            </p>
-          </div>
-          <div
-            id="tradingview-widget"
-            class="market-embed-wrapper"
-            aria-label="Resumen de mercado de TradingView"
-          ></div>
-        </section>
       </main>
       <footer class="app-footer">
         <p>
@@ -108,6 +108,6 @@
         </p>
       </footer>
     </div>
-    <script type="module" src="assets/js/app.js?v=20260908"></script>
+    <script type="module" src="assets/js/app.js?v=20260914-2"></script>
   </body>
 </html>
