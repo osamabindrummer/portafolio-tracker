@@ -224,7 +224,7 @@ a {
   width: max-content;
   white-space: nowrap;
   will-change: transform;
-  animation: macro-banner-scroll 28s linear infinite;
+  animation: macro-banner-scroll 40s linear infinite;
 }
 
 .macro-banner__sequence {
