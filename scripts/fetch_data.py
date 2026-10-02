@@ -21,6 +21,9 @@ except ImportError:  # pragma: no cover
     yf = None  # type: ignore
 
 
+from scripts.yahoo_history import PriceHistory, recover_global_equities
+
+
 BASE_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = BASE_DIR / "data" / "latest.json"
 
@@ -120,61 +123,63 @@ PLATFORM_CONFIG: Dict[str, Dict] = {
     "fintual": {
         "name": "Fintual",
         "color": "#FF6F61",
+        "portfolio_as_of": "2026-09-30",
+        "portfolio_source_url": "https://fintual.cl/risky-norris",
         "holdings": [
             HoldingConfig(
-                ticker="ESGV",
-                weight=0.294345,
-                fetch_symbol="ESGV",
-                display_name="Vanguard ESG U.S. Stock ETF",
-                currency="USD",
-            ),
-            HoldingConfig(
                 ticker="FTEC",
-                weight=0.181753,
+                weight=0.1795,
                 fetch_symbol="FTEC",
-                display_name="Fidelity MSCI Information Tech ETF",
+                display_name="Fidelity MSCI Information Technology Index ETF",
                 currency="USD",
             ),
             HoldingConfig(
                 ticker="QQQM",
-                weight=0.174532,
+                weight=0.1724,
                 fetch_symbol="QQQM",
-                display_name="Invesco NASDAQ 100 ETF",
+                display_name="Invesco Nasdaq 100 ETF",
                 currency="USD",
             ),
             HoldingConfig(
-                ticker="SOXX",
-                weight=0.108727,
-                fetch_symbol="SOXX",
-                display_name="iShares Semiconductor ETF",
+                ticker="SPYM",
+                weight=0.1090,
+                fetch_symbol="SPYM",
+                display_name="SPDR Portfolio S&P 500 ETF",
                 currency="USD",
             ),
             HoldingConfig(
-                ticker="VGK",
-                weight=0.102116,
-                fetch_symbol="VGK",
-                display_name="Vanguard FTSE Europe ETF",
+                ticker="ESGV",
+                weight=0.1053,
+                fetch_symbol="ESGV",
+                display_name="Vanguard ESG US Stock ETF",
+                currency="USD",
+            ),
+            HoldingConfig(
+                ticker="AVDV",
+                weight=0.0923,
+                fetch_symbol="AVDV",
+                display_name="Avantis International Small Cap Value ETF",
+                currency="USD",
+            ),
+            HoldingConfig(
+                ticker="SOXQ",
+                weight=0.0870,
+                fetch_symbol="SOXQ",
+                display_name="Invesco PHLX Semiconductor ETF",
+                currency="USD",
+            ),
+            HoldingConfig(
+                ticker="SPXS",
+                weight=0.0743,
+                fetch_symbol="SPXS.L",
+                display_name="Invesco S&P 500 UCITS ETF Acumulativo",
                 currency="USD",
             ),
             HoldingConfig(
                 ticker="IAUM",
-                weight=0.074451,
+                weight=0.0653,
                 fetch_symbol="IAUM",
                 display_name="iShares Gold Trust Micro",
-                currency="USD",
-            ),
-            HoldingConfig(
-                ticker="KOMP",
-                weight=0.045057,
-                fetch_symbol="KOMP",
-                display_name="SPDR Kensho New Economies ETF",
-                currency="USD",
-            ),
-            HoldingConfig(
-                ticker="EPP",
-                weight=0.019019,
-                fetch_symbol="EPP",
-                display_name="iShares MSCI Pacific ex-Japan ETF",
                 currency="USD",
             ),
         ],
@@ -307,7 +312,7 @@ def compute_returns(price_history: List[Dict[str, float]]) -> Dict[str, Optional
 
 
 def generate_sample_price_history(holding: HoldingConfig) -> List[Dict[str, float]]:
-    behavior = SAMPLE_BEHAVIOR[holding.ticker]
+    behavior = SAMPLE_BEHAVIOR.get(holding.ticker, {"base_price": 100.0, "annual_return": 0.06, "volatility": 0.04})
     total_days = 5 * 365
     start_date = datetime.utcnow().date() - timedelta(days=total_days - 1)
 
@@ -330,7 +335,14 @@ def generate_online_price_history(holding: HoldingConfig) -> List[Dict[str, floa
             "yfinance no está instalado. Ejecuta `pip install -r requirements.txt` antes de usar el modo en línea."
         )
     ticker = yf.Ticker(holding.fetch_symbol)
-    history = ticker.history(period="5y", interval="1d", auto_adjust=True)
+    warnings = []
+    if holding.fetch_symbol == "CFIETFGE.SN":
+        history = ticker.history(period="5y", interval="1d", auto_adjust=False)
+        history, warnings = recover_global_equities(ticker, history)
+        # Conservamos la misma base ajustada usada por los demás instrumentos.
+        history = history.rename(columns={"Close": "Raw Close", "Adj Close": "Close"})
+    else:
+        history = ticker.history(period="5y", interval="1d", auto_adjust=True)
     if history.empty:
         return []
     history = history[["Close"]].dropna()
@@ -350,7 +362,7 @@ def generate_online_price_history(holding: HoldingConfig) -> List[Dict[str, floa
                 "close": round(float(row["Close"]), 4),
             }
         )
-    return price_history
+    return PriceHistory(price_history, warnings)
 
 
 def build_payload(
@@ -417,6 +429,7 @@ def build_payload(
                 )
                 continue
 
+            history_warnings = getattr(price_history, "warnings", [])
             # Aseguramos orden cronológico
             price_history = sorted(price_history, key=lambda item: item["date"])
             normalized = compute_normalized_series(price_history)
@@ -448,6 +461,7 @@ def build_payload(
                     "weight": holding.weight,
                     "currency": holding.currency,
                     "latest_price": latest_price,
+                    "status": {"missing_data": False, "warnings": history_warnings},
                     "metrics": metrics,
                     "series": {
                         "price_history": price_history,
@@ -499,6 +513,7 @@ def build_payload(
                 "color": platform_data["color"],
                 "summary": summary,
                 "holdings": holdings_output,
+                **{key: platform_data[key] for key in ("portfolio_as_of", "portfolio_source_url") if key in platform_data},
             }
         )
 
@@ -561,7 +576,21 @@ def generate_online_payload() -> Dict:
         if cfg.ticker != cfg.fetch_symbol
     }
     notes = notes or None
-    return build_payload(generate_online_price_history, provider_name="yfinance", notes=notes)
+    # Consultamos una vez cada símbolo para que los packs compartan el mismo corte.
+    cached = {}
+
+    def provider(holding):
+        if holding.fetch_symbol not in cached:
+            try:
+                cached[holding.fetch_symbol] = generate_online_price_history(holding)
+            except Exception as error:
+                cached[holding.fetch_symbol] = error
+        result = cached[holding.fetch_symbol]
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+    return build_payload(provider, provider_name="yfinance", notes=notes)
 
 
 def write_json(payload: Dict, output_path: Path) -> None:

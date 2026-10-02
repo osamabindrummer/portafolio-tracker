@@ -298,7 +298,9 @@ const buildHoldingsRows = (platform) => {
               }
             </strong>
           </td>
-          <td>${displayName}</td>
+          <td>${displayName}${holding.status?.warnings?.length
+            ? `<br><small class="holding-data-note">${holding.status.missing_data ? "Datos sin verificar" : "Histórico recuperado"}</small>`
+            : ""}</td>
           <td class="numeric">${formatPercent(weight, { signed: false })}</td>
           <td class="numeric ${trendClass(monthlyChange)}">${formatPercent(monthlyChange)}</td>
           <td class="numeric ${trendClass(return1Y)}">${formatPercent(return1Y)}</td>
@@ -317,6 +319,13 @@ const buildHoldingsTable = (platform) => {
   let platformTitle = platform.name;
   if (platform.id === "fintual") {
     platformTitle = `Fintual - <a href="https://fintual.cl/risky-norris" target="_blank" rel="noopener noreferrer">Risky Norris</a>`;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(platform.portfolio_as_of ?? "")) {
+      const portfolioDate = new Date(`${platform.portfolio_as_of}T12:00:00Z`);
+      const dateLabel = new Intl.DateTimeFormat("es-CL", {
+        day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
+      }).format(portfolioDate);
+      platformTitle += ` (cartera al ${dateLabel})`;
+    }
   } else if (platform.id === "racional") {
     platformTitle = "Racional - Pack ETF";
   }

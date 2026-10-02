@@ -14,6 +14,7 @@ from urllib.request import Request, urlopen
 from backend.storage import INDICATORS_DATASET, LATEST_DATASET, StorageMeta, read_dataset, write_dataset
 from scripts.fetch_data import generate_offline_payload, generate_online_payload
 from scripts.validate_json import ValidationError, validate_payload
+from scripts.update_fintual import matches_config, rebuild_payload
 
 
 DEFAULT_COOLDOWN_SECONDS = 600
@@ -97,7 +98,12 @@ def refresh_indicators_dataset(*, force: bool = False) -> RefreshResult:
 
 
 def fetch_latest_payload() -> tuple[Dict[str, Any], StorageMeta]:
-    return read_dataset(LATEST_DATASET)
+    payload, meta = read_dataset(LATEST_DATASET)
+    if not matches_config(payload):
+        # Un Blob anterior puede conservar otra cartera tras publicar el código.
+        seed = json.loads(LATEST_DATASET.local_path.read_text(encoding="utf-8"))
+        payload = rebuild_payload(payload, fallback=seed)
+    return payload, meta
 
 
 def fetch_indicators_payload() -> tuple[Dict[str, Any], StorageMeta]:

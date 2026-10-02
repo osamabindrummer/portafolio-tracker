@@ -1,0 +1,7 @@
+interface:
+  display_name: "Actualizar Risky Norris"
+  short_description: "Actualiza la cartera de Fintual en Portafolio Tracker"
+  default_prompt: "Usa $actualizar-risky-norris para revisar la cartera oficial y actualizar Portafolio Tracker."
+
+policy:
+  allow_implicit_invocation: false

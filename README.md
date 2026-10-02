@@ -132,16 +132,16 @@ Qué deberías ver:
 4. Para validar sólo con archivos locales:
 
 ```bash
-PORTFOLIO_STORAGE=local vercel dev --listen 127.0.0.1:3000
+PORTFOLIO_STORAGE=local vercel dev --listen 127.0.0.1:3001
 ```
 
 Qué deberías ver:
-- Un mensaje tipo `Ready! Available at http://127.0.0.1:3000`.
+- Un mensaje tipo `Ready! Available at http://127.0.0.1:3001`.
 
 5. Abrir el sitio:
 
 ```bash
-open http://127.0.0.1:3000
+open http://127.0.0.1:3001
 ```
 
 Qué deberías ver:
@@ -283,3 +283,30 @@ Qué deberías ver:
 - El banner económico refresca sin exponer credenciales.
 - `data/latest` e `indicators/latest` responden desde `/api/...`.
 - Blob recibe nuevas versiones de JSON.
+
+## Uso en Linux
+
+[Guía para Linux](LINUX.md): instalación y apertura local desde la terminal.
+
+## Verificación del histórico de CFIETFGE.SN
+
+Los retornos usan cierres ajustados de Yahoo y se ponderan por el peso del holding.
+Para CFIETFGE.SN se contrasta el histórico diario con la cotización fechada de Yahoo.
+Si faltan sesiones recientes o aparecen saltos superiores al 25% entre sesiones
+cercanas, se comprueba la serie por hora de los últimos tres meses. Sólo se sustituyen
+cierres incompatibles o ausentes por el último precio observado en la misma fecha;
+no se interpolan precios ni se aplica un factor arbitrario. Si existen eventos
+corporativos durante la recuperación, falta corroboración o persisten saltos,
+el instrumento se marca sin datos y con una advertencia. Los dos packs reutilizan
+la misma consulta y se recalculan las métricas, los gráficos y los promedios ponderados.
+La recuperación queda registrada en `status.warnings` y visible en la tabla.
+
+Prueba de regresión: `.venv/bin/python -m unittest discover -s tests -v`.
+
+## Actualización manual de Risky Norris
+
+La skill pertenece a este repositorio y está versionada en
+[.agents/skills/actualizar-risky-norris/SKILL.md](.agents/skills/actualizar-risky-norris/SKILL.md).
+Se invoca con `$actualizar-risky-norris` al trabajar en este proyecto, sólo bajo
+instrucción del usuario. Al clonar o sincronizar el repo se obtiene también la skill;
+no requiere una copia global en el equipo.

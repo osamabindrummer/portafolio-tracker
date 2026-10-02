@@ -2,7 +2,7 @@
   "functions": {
     "api/**/*.py": {
       "maxDuration": 60,
-      "includeFiles": "public/indicators/latest.json"
+      "includeFiles": "{data/latest.json,public/indicators/latest.json}"
     }
   },
   "rewrites": [
