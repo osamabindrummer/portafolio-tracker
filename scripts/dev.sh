@@ -3,8 +3,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 portfolio_python="${PORTFOLIO_PYTHON:-$PWD/.venv-review/bin/python}"
-if ! "$portfolio_python" -c 'import sys; sys.exit(not ((3, 11) <= sys.version_info[:2] < (3, 15)))' 2>/dev/null; then
-  echo "Se necesita Python 3.11–3.14. Crea un entorno compatible o indica PORTFOLIO_PYTHON." >&2
+if ! "$portfolio_python" -c 'import sys; sys.exit(not (sys.version_info[:3] >= (3, 11, 5) and sys.version_info[:2] < (3, 15)))' 2>/dev/null; then
+  echo "Se necesita Python 3.11.5–3.14. Crea un entorno compatible o indica PORTFOLIO_PYTHON." >&2
   exit 1
 fi
 if ! "$portfolio_python" -c 'import yfinance; import vercel.blob.sync' 2>/dev/null; then

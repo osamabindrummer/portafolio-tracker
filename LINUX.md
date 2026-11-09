@@ -1,6 +1,6 @@
 # Desarrollo local en Linux
 
-Desde la raíz del repositorio, con Python 3.11–3.14:
+Desde la raíz del repositorio, con Python 3.11.5–3.14:
 
 ```sh
 python3.11 -m venv .venv-review

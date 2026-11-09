@@ -46,7 +46,7 @@ Blob conserva las últimas cinco versiones por dataset. La lectura pagina el lis
 
 ## Desarrollo local
 
-Prechecks: trabajar desde la raíz del repositorio, disponer de Python **3.11–3.14** y dejar libre `127.0.0.1:3001`. El entorno anterior de este equipo usa Python 3.9; se conserva intacto. El entorno para revisión es `.venv-review`.
+Prechecks: trabajar desde la raíz del repositorio, disponer de Python **3.11.5–3.14** y dejar libre `127.0.0.1:3001`. El entorno anterior de este equipo usa Python 3.9; se conserva intacto. El entorno para revisión es `.venv-review`.
 
 1. Crear el entorno e instalar las versiones verificadas:
 
@@ -101,7 +101,7 @@ Copiar los nombres de `.env.example` al configurar Vercel; no versionar valores 
 - `REFRESH_ALL_INCLUDES_INDICATORS=true`.
 - `CRON_REFRESH_INDICATORS=true`.
 
-No configurar `PORTFOLIO_STORAGE=local` en producción. El adaptador informa por separado la ausencia de token y la incompatibilidad del SDK. El cron de `vercel.json` ejecuta lunes, miércoles y viernes a las 09:00 UTC.
+Vercel usa Python 3.12, fijado en `.python-version`. No configurar `PORTFOLIO_STORAGE=local` en producción. El adaptador informa por separado la ausencia de token y la incompatibilidad del SDK. El cron de `vercel.json` ejecuta lunes, miércoles y viernes a las 09:00 UTC.
 
 Endpoints: `GET /api/data/latest`, `GET /api/indicators`, `POST /api/refresh-data`, `POST /api/refresh-indicators`, `POST /api/refresh-all`, `GET /api/cron/refresh`.
 
