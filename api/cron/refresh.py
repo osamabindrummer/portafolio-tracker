@@ -2,7 +2,13 @@ from __future__ import annotations
 
 import os
 
-from backend.http import ApiHandler, send_error_json, send_json
+from backend.http import (
+    ApiHandler,
+    is_authorized,
+    is_truthy,
+    send_error_json,
+    send_json,
+)
 from backend.portfolio_refresh import refresh_indicators_dataset, refresh_latest_dataset
 
 
@@ -10,10 +16,7 @@ class handler(ApiHandler):
     allowed_methods = ("GET", "OPTIONS")
 
     def do_GET(self) -> None:  # noqa: N802
-        expected_secret = os.getenv("CRON_SECRET", "").strip()
-        authorization = self.headers.get("Authorization", "").strip()
-
-        if expected_secret and authorization != f"Bearer {expected_secret}":
+        if not is_authorized(self):
             send_error_json(self, 401, "No autorizado para ejecutar el cron.")
             return
 
@@ -35,7 +38,9 @@ class handler(ApiHandler):
             "status": "ok",
             "results": {
                 "latest": latest_result.to_dict(),
-                "indicators": indicators_result.to_dict() if indicators_result else None,
+                "indicators": indicators_result.to_dict()
+                if indicators_result
+                else None,
             },
         }
         if indicators_error:
@@ -45,5 +50,4 @@ class handler(ApiHandler):
 
 
 def _should_refresh_indicators_from_cron() -> bool:
-    raw_value = os.getenv("CRON_REFRESH_INDICATORS", "true").strip().lower()
-    return raw_value in {"1", "true", "yes", "si", "sí", "on"}
+    return is_truthy(os.getenv("CRON_REFRESH_INDICATORS", "true"))

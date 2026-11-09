@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portafolio Tracker</title>
-    <link rel="stylesheet" href="assets/css/styles.css?v=20260908">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="assets/css/styles.css?v=20261109-3">
   </head>
   <body>
     <div id="app" class="app-shell">
@@ -49,11 +48,11 @@
           <span id="last-update" class="last-update" aria-live="polite">Última actualización: --</span>
         </div>
       </header>
+      <p id="refresh-status" class="sr-only" role="status" aria-live="polite"></p>
       <main class="app-main">
         <section id="metrics" class="metrics-panel" aria-labelledby="metrics-title">
           <div class="section-header">
             <h2 id="metrics-title">🚀 Métricas rápidas</h2>
-            <p class="section-subtitle">Comparativa simultánea entre plataformas</p>
           </div>
           <div id="metrics-cards" class="metrics-grid"></div>
         </section>
@@ -100,14 +99,15 @@
           </div>
         </section>
       </main>
-      <footer class="app-footer">
+      <footer class="app-footer app-footer--portfolio">
         <p>
           <a href="https://bio.link/danielsalasj" target="_blank" rel="noopener noreferrer"
             >Daniel Salas</a
           >. 2026.
         </p>
+        <a class="data-link" href="/datos.html">Datos y metodología</a>
       </footer>
     </div>
-    <script type="module" src="assets/js/app.js?v=20260914-2"></script>
+    <script type="module" src="assets/js/app.js?v=20261109-3"></script>
   </body>
 </html>

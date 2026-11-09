@@ -1,21 +1,11 @@
+import { requestJSON } from "./http.js";
+
 const INDICATORS_ENDPOINT = "/api/indicators";
 const REFRESH_ENDPOINT = "/api/refresh-indicators";
-const CACHE_BUSTER_PARAM = "cb";
 const BANNER_OFFSET_VAR = "--macro-banner-offset";
 let resizeHandlerAttached = false;
-
-const resolveEndpoint = (endpoint) => {
-  if (!endpoint) {
-    throw new Error("Endpoint inválido");
-  }
-  if (/^https?:\/\//i.test(endpoint)) {
-    return new URL(endpoint);
-  }
-  if (endpoint.startsWith("/")) {
-    return new URL(endpoint, window.location.origin);
-  }
-  return new URL(endpoint, import.meta.url);
-};
+// Los espacios inseparables mantienen la misma separación también al repetir la cinta.
+const INDICATOR_SEPARATOR = "\u00a0\u00a0·\u00a0\u00a0";
 
 const formatNumber = (value, decimals) => {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
@@ -44,32 +34,15 @@ const formatIndicatorValue = (item) => {
   return formatNumber(item.value, item.decimals ?? 0);
 };
 
-const formatFetchedAt = (value) => {
-  if (!value) {
-    return "Fecha y hora de actualización no disponibles";
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Fecha y hora de actualización no disponibles";
-  }
-
-  return new Intl.DateTimeFormat("es-CL", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "America/Santiago",
-  }).format(date);
-};
-
-const buildMessage = (items, fetchedAt) =>
-  [`Actualizado: ${formatFetchedAt(fetchedAt)}`, ...items.map((item) => `${item.label}: ${formatIndicatorValue(item)}`)].join(
-    " · ",
-  );
+const buildMessage = (items) =>
+  items
+    .map((item) => `${item.label}: ${formatIndicatorValue(item)}`)
+    .join(INDICATOR_SEPARATOR);
 
 const createMarqueeItem = (message) => {
   const item = document.createElement("span");
   item.className = "macro-banner__item";
-  item.textContent = `${message} ·`;
+  item.textContent = `${message}${INDICATOR_SEPARATOR}`;
   return item;
 };
 
@@ -85,8 +58,10 @@ const populateMarquee = (trackEl, message) => {
   trackEl.appendChild(sequence);
 
   const viewportWidth = trackEl.parentElement?.clientWidth ?? 0;
-  const itemWidth = sequence.firstElementChild?.getBoundingClientRect().width ?? 0;
-  const repetitions = itemWidth > 0 ? Math.max(2, Math.ceil(viewportWidth / itemWidth) + 1) : 2;
+  const itemWidth =
+    sequence.firstElementChild?.getBoundingClientRect().width ?? 0;
+  const repetitions =
+    itemWidth > 0 ? Math.max(2, Math.ceil(viewportWidth / itemWidth) + 1) : 2;
 
   for (let index = 1; index < repetitions; index += 1) {
     sequence.appendChild(createMarqueeItem(message));
@@ -119,18 +94,8 @@ const attachResizeHandler = (element) => {
   resizeHandlerAttached = true;
 };
 
-const fetchIndicators = async () => {
-  const url = resolveEndpoint(INDICATORS_ENDPOINT);
-  const cacheBuster = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  url.searchParams.set(CACHE_BUSTER_PARAM, cacheBuster);
-
-  const response = await fetch(url.toString(), { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-
-  return response.json();
-};
+const fetchIndicators = async () =>
+  (await requestJSON(INDICATORS_ENDPOINT)).payload;
 
 const setBannerVisibility = (element, visible) => {
   if (!element) {
@@ -167,7 +132,7 @@ const renderBanner = (data) => {
 
   setBannerVisibility(container, true);
 
-  const message = buildMessage(items, data?.fetched_at);
+  const message = buildMessage(items);
   populateMarquee(marqueeTrack, message);
   syncBannerOffsetVar(container);
   attachResizeHandler(container);
@@ -187,44 +152,26 @@ export const initIndicatorsBanner = async () => {
     return;
   }
 
-  setBannerVisibility(container, false);
-
   try {
     const data = await fetchIndicators();
     renderBanner(data);
+    return true;
   } catch (error) {
     console.warn("No se pudo cargar el banner de indicadores:", error);
-    setBannerVisibility(container, false);
+    if (!container.querySelector("[data-banner-track]")?.childElementCount)
+      setBannerVisibility(container, false);
+    return false;
   }
 };
 
-export const refreshIndicatorsBanner = async ({ force = false } = {}) => {
-  const response = await fetch(REFRESH_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ force }),
+export const refreshIndicatorsBanner = async () => {
+  const { payload } = await requestJSON(REFRESH_ENDPOINT, {
+    body: {},
+    timeout: 30000,
   });
-
-  let payload = null;
-  try {
-    payload = await response.json();
-  } catch (error) {
-    payload = null;
-  }
-
-  if (!response.ok) {
-    const message =
-      typeof payload?.message === "string" && payload.message.trim().length
-        ? payload.message
-        : `HTTP ${response.status}`;
-    throw new Error(message);
-  }
-
-  await initIndicatorsBanner();
-  return payload ?? {
-    status: "updated",
-    message: "El banner fue actualizado.",
-  };
+  if (!(await initIndicatorsBanner()))
+    throw new Error(
+      "Los indicadores se actualizaron, pero no se pudieron recargar. Se conserva la vista anterior.",
+    );
+  return payload;
 };

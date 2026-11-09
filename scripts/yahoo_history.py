@@ -35,7 +35,7 @@ def recover_global_equities(ticker, daily):
     if not jumps.any() and not mismatch and not missing_latest:
         return daily, []
 
-    hourly = ticker.history(period='3mo', interval='1h', auto_adjust=False)
+    hourly = ticker.history(period='3mo', interval='1h', auto_adjust=False, timeout=6)
     if hourly.empty:
         raise RuntimeError('CFIETFGE.SN: histórico diario inconsistente y sin operaciones por hora para recuperarlo.')
     hourly = hourly.copy()

@@ -1,16 +1,15 @@
-# Uso en Linux (Arch, Manjaro u otras distribuciones)
+# Desarrollo local en Linux
 
-Abre una terminal en la carpeta raíz de este repositorio clonado. Para revisar archivos y editar código, no necesitas ejecutar el servidor: usa tu editor y Git normalmente. Los comandos siguientes sirven para abrir la aplicación local. Detén un servidor con `Ctrl+C`. Los archivos `.command` son accesos rápidos de macOS; en Linux usa estos comandos.
-
-## Vista local
-
-Este proyecto usa funciones de Vercel para sus rutas `/api/`. Instala Python, las dependencias del proyecto y Vercel CLI; configura el CLI si te lo solicita. Desde la raíz:
+Desde la raíz del repositorio, con Python 3.11–3.14:
 
 ```sh
-python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-cp .env.example .env.local
-PORTFOLIO_STORAGE=local vercel dev --listen 127.0.0.1:3001
+python3.11 -m venv .venv-review
+.venv-review/bin/python -m pip install -r requirements.lock
+./scripts/dev.sh
 ```
 
-Abre `http://127.0.0.1:3001/`. El modo `local` usa los archivos semilla del repositorio; las actualizaciones pueden consultar fuentes externas. `.env.local` y `.venv/` se crean en cada equipo. Véase [README.md](README.md).
+Abrir [Portafolio Tracker local](http://127.0.0.1:3001/). El puerto debe estar libre; el lanzador falla con un mensaje claro si está ocupado. No se requiere Vercel CLI ni credenciales remotas. Para elegir otro intérprete compatible, usar `PORTFOLIO_PYTHON=/ruta/al/python ./scripts/dev.sh`.
+
+El servidor local comparte los handlers de producción y escribe sólo archivos locales. El botón de actualización puede consultar fuentes externas y modifica la semilla únicamente cuando supera los controles de calidad. Detener con `Ctrl+C`.
+
+La validación completa y la interpretación de las métricas están en [README.md](README.md).

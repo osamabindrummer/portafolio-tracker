@@ -1,11 +1,22 @@
-const ChartGlobal = window.Chart;
+let ChartGlobal = window.Chart;
+let chartLoading = null;
 
-if (!ChartGlobal) {
-  throw new Error("Chart.js no se cargó correctamente desde la CDN.");
-}
-
-ChartGlobal.defaults.font.family =
-  '"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+const loadChartLibrary = () => {
+  if (!chartLoading) {
+    chartLoading = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src =
+        "https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js";
+      script.onload = () => {
+        ChartGlobal = window.Chart;
+        resolve();
+      };
+      script.onerror = () => reject(new Error("No se pudo cargar Chart.js."));
+      document.head.appendChild(script);
+    });
+  }
+  return chartLoading;
+};
 
 const MAIN_CANVAS_ID = "main-chart";
 let currentChart = null;
@@ -39,12 +50,36 @@ const getChartTheme = () => {
 
   const styles = window.getComputedStyle(document.documentElement);
   return {
-    axisColor: readCssVariable(styles, "--chart-axis-color", DEFAULT_CHART_THEME.axisColor),
-    gridColor: readCssVariable(styles, "--chart-grid-color", DEFAULT_CHART_THEME.gridColor),
-    gridStrong: readCssVariable(styles, "--chart-grid-strong", DEFAULT_CHART_THEME.gridStrong),
-    tooltipBg: readCssVariable(styles, "--chart-tooltip-bg", DEFAULT_CHART_THEME.tooltipBg),
-    tooltipColor: readCssVariable(styles, "--chart-tooltip-color", DEFAULT_CHART_THEME.tooltipColor),
-    tooltipBorder: readCssVariable(styles, "--chart-tooltip-border", DEFAULT_CHART_THEME.tooltipBorder),
+    axisColor: readCssVariable(
+      styles,
+      "--chart-axis-color",
+      DEFAULT_CHART_THEME.axisColor,
+    ),
+    gridColor: readCssVariable(
+      styles,
+      "--chart-grid-color",
+      DEFAULT_CHART_THEME.gridColor,
+    ),
+    gridStrong: readCssVariable(
+      styles,
+      "--chart-grid-strong",
+      DEFAULT_CHART_THEME.gridStrong,
+    ),
+    tooltipBg: readCssVariable(
+      styles,
+      "--chart-tooltip-bg",
+      DEFAULT_CHART_THEME.tooltipBg,
+    ),
+    tooltipColor: readCssVariable(
+      styles,
+      "--chart-tooltip-color",
+      DEFAULT_CHART_THEME.tooltipColor,
+    ),
+    tooltipBorder: readCssVariable(
+      styles,
+      "--chart-tooltip-border",
+      DEFAULT_CHART_THEME.tooltipBorder,
+    ),
   };
 };
 
@@ -166,20 +201,23 @@ const buildTimeseriesDataset = (state) => {
     return dataset.platform_id === state.activePlatformId;
   });
 
-  if (!datasets.length) {
-    datasets = timeseries.datasets ?? [];
-  }
-
   const labels = timeseries.labels ?? [];
   datasetColorCache.clear();
   const chartDatasets = datasets.map((dataset) => {
-    const ticker = dataset.id ?? (dataset.label ? dataset.label.split("·")[0].trim() : dataset.platform_id);
-    const colorKey = dataset.id ?? `${ticker}-${dataset.platform_id ?? "default"}`;
+    const ticker =
+      dataset.id ??
+      (dataset.label
+        ? dataset.label.split("·")[0].trim()
+        : dataset.platform_id);
+    const colorKey =
+      dataset.id ?? `${ticker}-${dataset.platform_id ?? "default"}`;
     const color = getColorForKey(colorKey);
     return {
       label: ticker ?? dataset.label,
       fullLabel: dataset.label ?? ticker ?? "",
-      data: (dataset.data ?? []).map((value) => (value === null || value === undefined ? null : Number(value))),
+      data: (dataset.data ?? []).map((value) =>
+        value === null || value === undefined ? null : Number(value),
+      ),
       borderColor: color,
       backgroundColor: dataset.backgroundColor ?? hexToRgba(color, 0.12),
       borderWidth: 2.25,
@@ -208,10 +246,6 @@ const buildHistogramDataset = (state, histogramKey) => {
     return entry.platform_id === state.activePlatformId;
   });
 
-  if (!filtered.length) {
-    filtered = entries;
-  }
-
   const labels = filtered
     .map((entry) => entry.label ?? entry.ticker ?? "--")
     .map((label) => label.replace(/\s+/g, " "));
@@ -231,7 +265,8 @@ const buildTimeseriesConfig = (state) => {
     return null;
   }
 
-  const viewportWidth = typeof window !== "undefined" ? window.innerWidth || 1280 : 1280;
+  const viewportWidth =
+    typeof window !== "undefined" ? window.innerWidth || 1280 : 1280;
   const maxTicks = Math.max(4, Math.floor(viewportWidth / 140));
   const rotation = viewportWidth < 640 ? 30 : 0;
   const chartTheme = getChartTheme();
@@ -285,7 +320,10 @@ const buildTimeseriesConfig = (state) => {
         },
         y: {
           grid: { color: chartTheme.gridColor },
-          ticks: { color: chartTheme.axisColor, callback: (value) => `${value}` },
+          ticks: {
+            color: chartTheme.axisColor,
+            callback: (value) => `${value}`,
+          },
         },
       },
     },
@@ -339,7 +377,11 @@ const buildHistogramConfig = (state, histogramKey, datasetLabel) => {
       scales: {
         x: {
           grid: { display: false },
-          ticks: { maxRotation: 60, minRotation: 0, color: chartTheme.axisColor },
+          ticks: {
+            maxRotation: 60,
+            minRotation: 0,
+            color: chartTheme.axisColor,
+          },
         },
         y: {
           beginAtZero: true,
@@ -360,7 +402,11 @@ const buildChartConfig = (state) => {
   switch (mode) {
     case "monthly_change":
       return {
-        config: buildHistogramConfig(state, "monthly_change", "Variación mensual"),
+        config: buildHistogramConfig(
+          state,
+          "monthly_change",
+          "Variación mensual",
+        ),
         placeholder: "No hay datos de variación mensual para esta selección.",
       };
     case "return_1y":
@@ -377,12 +423,17 @@ const buildChartConfig = (state) => {
     default:
       return {
         config: buildTimeseriesConfig(state),
-        placeholder: "No hay series disponibles para la plataforma seleccionada.",
+        placeholder:
+          "No hay series disponibles para la plataforma seleccionada.",
       };
   }
 };
 
-export const createCharts = (state) => {
+export const createCharts = (state, force = false) => {
+  const unchanged =
+    lastState?.charts === state?.charts &&
+    lastState?.activePlatformId === state?.activePlatformId &&
+    lastState?.chartMode === state?.chartMode;
   lastState = state;
   const canvas = getCanvas(MAIN_CANVAS_ID);
   if (!canvas) {
@@ -395,6 +446,19 @@ export const createCharts = (state) => {
     return;
   }
 
+  if (!ChartGlobal) {
+    ensurePlaceholder("Cargando gráfico...");
+    void loadChartLibrary()
+      .then(() => createCharts(lastState, true))
+      .catch(() => {
+        ensurePlaceholder(
+          "No se pudo cargar el gráfico. Las métricas y tablas siguen disponibles.",
+        );
+      });
+    return;
+  }
+  if (unchanged && currentChart && !force) return;
+  ChartGlobal.defaults.font.family = '"Inter", system-ui, sans-serif';
   const { config, placeholder } = buildChartConfig(state);
 
   if (!config) {
@@ -418,6 +482,6 @@ if (typeof window !== "undefined") {
     if (!lastState) {
       return;
     }
-    createCharts(lastState);
+    createCharts(lastState, true);
   });
 }

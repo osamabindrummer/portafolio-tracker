@@ -1,236 +1,245 @@
 #!/usr/bin/env python3
-"""Validador liviano para el archivo data/latest.json."""
+"""Valida estructura y coherencia de precios antes de guardar un portafolio."""
 
 from __future__ import annotations
 
 import argparse
 import json
+import math
+from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
-
-Number = (int, float)
 
 
-class ValidationError(Exception):
-    """Error que agrupa una o más fallas de validación."""
+class ValidationError(ValueError):
+    """Agrupa los errores para que puedan corregirse en una sola revisión."""
 
-    def __init__(self, errors: Iterable[str]):
-        message = "\n".join(errors)
-        super().__init__(message)
+    def __init__(self, errors):
         self.errors = list(errors)
+        super().__init__("\n".join(self.errors))
 
 
-def _is_number(value: Any, *, allow_none: bool = False) -> bool:
-    if value is None and allow_none:
-        return True
-    return isinstance(value, Number)
-
-
-def _require(condition: bool, message: str, errors: List[str]) -> None:
-    if not condition:
-        errors.append(message)
-
-
-def validate_holding(holding: Dict[str, Any], *, platform_id: str, errors: List[str]) -> None:
-    prefix = f"Holding {holding.get('ticker', '<sin ticker>')} ({platform_id})"
-
-    _require(isinstance(holding.get("ticker"), str) and holding["ticker"].strip(), f"{prefix}: ticker inválido", errors)
-    _require(
-        isinstance(holding.get("display_name"), str) and holding["display_name"].strip(),
-        f"{prefix}: display_name inválido",
-        errors,
+def _is_number(value):
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
     )
-    _require(_is_number(holding.get("weight")), f"{prefix}: weight debe ser numérico", errors)
-    _require(isinstance(holding.get("currency"), str), f"{prefix}: currency debe ser string", errors)
 
-    metrics = holding.get("metrics", {})
-    _require(isinstance(metrics, dict), f"{prefix}: metrics debe ser objeto", errors)
-    for key in ("return_1y", "return_5y", "monthly_change_pct", "daily_change_pct"):
-        _require(
-            _is_number(metrics.get(key), allow_none=True),
-            f"{prefix}: metrics.{key} debe ser número o null",
-            errors,
+
+def validate_indicators(payload: dict) -> None:
+    errors = []
+    expected = {"uf", "utm", "dollar_observed", "ipc_annual"}
+    if not isinstance(payload, dict) or not isinstance(payload.get("items"), list):
+        raise ValidationError(["Los indicadores deben contener una lista items."])
+    keys = []
+    for item in payload["items"]:
+        if not isinstance(item, dict):
+            errors.append("Cada indicador debe ser un objeto.")
+            continue
+        key = item.get("key")
+        if not isinstance(key, str):
+            errors.append("Identificador de indicador inválido.")
+            continue
+        if key not in expected or key in keys:
+            errors.append("Indicador desconocido o duplicado.")
+        keys.append(key)
+        if not _is_number(item.get("value")) or (
+            key != "ipc_annual" and item["value"] <= 0
+        ):
+            errors.append("Valor de indicador inválido.")
+        if not isinstance(item.get("label"), str) or item.get("unit") not in (
+            "CLP",
+            "PERCENT",
+        ):
+            errors.append("Nombre o unidad de indicador inválidos.")
+        decimals = item.get("decimals")
+        if type(decimals) is not int or not 0 <= decimals <= 6:
+            errors.append("Precisión del indicador inválida.")
+        try:
+            date.fromisoformat(item.get("observed_at", ""))
+        except (ValueError, TypeError):
+            errors.append("Fecha de observación inválida.")
+    if set(keys) != expected:
+        errors.append("Faltan indicadores obligatorios.")
+    try:
+        timestamp = datetime.fromisoformat(
+            payload.get("fetched_at", "").replace("Z", "+00:00")
         )
-
-    series = holding.get("series", {})
-    _require(isinstance(series, dict), f"{prefix}: series debe ser objeto", errors)
-
-    price_history = series.get("price_history", [])
-    _require(isinstance(price_history, list), f"{prefix}: series.price_history debe ser lista", errors)
-    for point in price_history:
-        _require(isinstance(point, dict), f"{prefix}: price_history debe contener objetos", errors)
-        _require(isinstance(point.get("date"), str), f"{prefix}: price_history.date debe ser string", errors)
-        _require(
-            _is_number(point.get("close")),
-            f"{prefix}: price_history.close debe ser numérico",
-            errors,
-        )
-
-    normalized = series.get("normalized_5y", [])
-    _require(isinstance(normalized, list), f"{prefix}: series.normalized_5y debe ser lista", errors)
-    for point in normalized:
-        _require(isinstance(point, dict), f"{prefix}: normalized_5y debe contener objetos", errors)
-        _require(isinstance(point.get("date"), str), f"{prefix}: normalized_5y.date debe ser string", errors)
-        _require(
-            _is_number(point.get("value")),
-            f"{prefix}: normalized_5y.value debe ser numérico",
-            errors,
-        )
-
-
-def validate_platform(platform: Dict[str, Any], errors: List[str]) -> None:
-    platform_id = platform.get("id", "")
-    prefix = f"Plataforma {platform_id or '<sin id>'}"
-
-    _require(isinstance(platform_id, str) and platform_id.strip(), f"{prefix}: id inválido", errors)
-    _require(isinstance(platform.get("name"), str), f"{prefix}: name debe ser string", errors)
-    _require(isinstance(platform.get("color"), str), f"{prefix}: color debe ser string", errors)
-
-    holdings = platform.get("holdings", [])
-    _require(isinstance(holdings, list), f"{prefix}: holdings debe ser lista", errors)
-    for holding in holdings:
-        if isinstance(holding, dict):
-            validate_holding(holding, platform_id=platform_id, errors=errors)
-        else:
-            errors.append(f"{prefix}: holdings debe contener objetos")
-
-    summary = platform.get("summary")
-    if summary is not None:
-        _require(isinstance(summary, dict), f"{prefix}: summary debe ser objeto", errors)
-        if isinstance(summary, dict):
-            for key in ("total_weight", "avg_return_1y", "avg_return_5y", "avg_monthly_change"):
-                if key in summary:
-                    _require(
-                        _is_number(summary.get(key)),
-                        f"{prefix}: summary.{key} debe ser numérico",
-                        errors,
-                    )
-            if "timestamp_range" in summary:
-                range_value = summary["timestamp_range"]
-                _require(isinstance(range_value, dict), f"{prefix}: summary.timestamp_range debe ser objeto", errors)
-                if isinstance(range_value, dict):
-                    _require(
-                        isinstance(range_value.get("start"), str),
-                        f"{prefix}: summary.timestamp_range.start debe ser string",
-                        errors,
-                    )
-                    _require(
-                        isinstance(range_value.get("end"), str),
-                        f"{prefix}: summary.timestamp_range.end debe ser string",
-                        errors,
-                    )
-
-
-def validate_charts(charts: Dict[str, Any], errors: List[str]) -> None:
-    _require(isinstance(charts, dict), "charts debe ser un objeto", errors)
-    if not isinstance(charts, dict):
-        return
-
-    timeseries = charts.get("timeseries_5y", {})
-    _require(isinstance(timeseries, dict), "charts.timeseries_5y debe ser objeto", errors)
-    if isinstance(timeseries, dict):
-        labels = timeseries.get("labels", [])
-        _require(isinstance(labels, list), "charts.timeseries_5y.labels debe ser lista", errors)
-        for label in labels:
-            _require(isinstance(label, str), "charts.timeseries_5y.labels debe contener strings", errors)
-
-        datasets = timeseries.get("datasets", [])
-        _require(isinstance(datasets, list), "charts.timeseries_5y.datasets debe ser lista", errors)
-        for dataset in datasets:
-            _require(isinstance(dataset, dict), "charts.timeseries_5y.datasets debe contener objetos", errors)
-            if not isinstance(dataset, dict):
-                continue
-            prefix = f"Dataset {dataset.get('id', '<sin id>')}"
-            for key in ("id", "label", "platform_id", "borderColor", "backgroundColor"):
-                _require(isinstance(dataset.get(key), str), f"{prefix}: {key} debe ser string", errors)
-            data = dataset.get("data", [])
-            _require(isinstance(data, list), f"{prefix}: data debe ser lista", errors)
-            for value in data:
-                _require(
-                    _is_number(value, allow_none=True),
-                    f"{prefix}: data debe contener números o null",
-                    errors,
-                )
-
-    histograms = charts.get("histograms", {})
-    _require(isinstance(histograms, dict), "charts.histograms debe ser objeto", errors)
-    if isinstance(histograms, dict):
-        for histogram_key in ("monthly_change", "return_1y", "return_5y"):
-            if histogram_key not in histograms:
-                continue
-            histogram_values = histograms[histogram_key]
-            _require(isinstance(histogram_values, list), f"charts.histograms.{histogram_key} debe ser lista", errors)
-            for entry in histogram_values:
-                _require(isinstance(entry, dict), f"charts.histograms.{histogram_key} debe contener objetos", errors)
-                if not isinstance(entry, dict):
-                    continue
-                prefix = f"Histogram {histogram_key} · {entry.get('ticker', '<sin ticker>')}"
-                _require(isinstance(entry.get("ticker"), str), f"{prefix}: ticker debe ser string", errors)
-                _require(isinstance(entry.get("platform_id"), str), f"{prefix}: platform_id debe ser string", errors)
-                _require(isinstance(entry.get("label"), str), f"{prefix}: label debe ser string", errors)
-                _require(_is_number(entry.get("weight")), f"{prefix}: weight debe ser numérico", errors)
-                _require(
-                    _is_number(entry.get("value")),
-                    f"{prefix}: value debe ser numérico",
-                    errors,
-                )
-
-
-def validate_payload(payload: Dict[str, Any]) -> None:
-    errors: List[str] = []
-
-    for key in ("generated_at", "currency", "source", "platforms", "charts"):
-        _require(key in payload, f"Falta la clave obligatoria: {key}", errors)
-
-    _require(isinstance(payload.get("generated_at"), str), "generated_at debe ser string", errors)
-    _require(isinstance(payload.get("currency"), str), "currency debe ser string", errors)
-
-    source = payload.get("source", {})
-    _require(isinstance(source, dict), "source debe ser objeto", errors)
-    if isinstance(source, dict):
-        _require(isinstance(source.get("provider"), str), "source.provider debe ser string", errors)
-        if "retrieved_at" in source:
-            _require(isinstance(source.get("retrieved_at"), str), "source.retrieved_at debe ser string", errors)
-        if "notes" in source:
-            _require(isinstance(source.get("notes"), dict), "source.notes debe ser objeto", errors)
-
-    platforms = payload.get("platforms", [])
-    _require(isinstance(platforms, list), "platforms debe ser lista", errors)
-    for platform in platforms:
-        if isinstance(platform, dict):
-            validate_platform(platform, errors)
-        else:
-            errors.append("platforms debe contener objetos")
-
-    charts = payload.get("charts", {})
-    validate_charts(charts, errors)
-
+        if timestamp.tzinfo is None:
+            errors.append("La fecha de consulta necesita zona horaria.")
+    except (ValueError, TypeError, AttributeError):
+        errors.append("Fecha de consulta inválida.")
     if errors:
         raise ValidationError(errors)
 
 
-def parse_args(argv: Optional[Iterable[str]] = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Valida la estructura del JSON del portafolio")
-    parser.add_argument("json_path", type=Path, help="Ruta al archivo JSON a validar")
-    return parser.parse_args(argv)
+def validate_payload(payload: dict) -> None:
+    if isinstance(payload, dict) and payload.get("schema_version") == 2:
+        from scripts.portfolio import unpack_payload
+
+        try:
+            payload = unpack_payload(payload)
+        except (KeyError, TypeError, ValueError) as error:
+            raise ValidationError(
+                [f"Históricos compactos inválidos: {error}"]
+            ) from error
+    errors = []
+
+    def require(condition, message):
+        if not condition:
+            errors.append(message)
+
+    def valid_date(value):
+        try:
+            return (
+                isinstance(value, str)
+                and date.fromisoformat(value).isoformat() == value
+            )
+        except ValueError:
+            return False
+
+    if not isinstance(payload, dict):
+        raise ValidationError(["El portafolio debe ser un objeto."])
+    for field in ("generated_at",):
+        try:
+            stamp = datetime.fromisoformat(
+                payload.get(field, "").replace("Z", "+00:00")
+            )
+            require(stamp.tzinfo is not None, f"{field} necesita zona horaria.")
+        except (ValueError, AttributeError, TypeError):
+            errors.append(f"{field} debe ser una fecha válida.")
+    require(isinstance(payload.get("currency"), str), "currency debe ser texto.")
+    source = payload.get("source")
+    require(
+        isinstance(source, dict) and isinstance(source.get("provider"), str),
+        "source.provider es obligatorio.",
+    )
+    platforms = payload.get("platforms")
+    if not isinstance(platforms, list) or not platforms:
+        raise ValidationError(errors + ["platforms debe ser una lista no vacía."])
+    platform_ids = set()
+    for platform in platforms:
+        if not isinstance(platform, dict):
+            errors.append("Cada plataforma debe ser un objeto.")
+            continue
+        pid = platform.get("id")
+        require(
+            isinstance(pid, str) and bool(pid) and pid not in platform_ids,
+            "Identificador de plataforma inválido o duplicado.",
+        )
+        if not isinstance(pid, str):
+            continue
+        platform_ids.add(pid)
+        for field in ("name", "color"):
+            require(isinstance(platform.get(field), str), f"{pid}: falta {field}.")
+        holdings = platform.get("holdings")
+        if not isinstance(holdings, list) or not holdings:
+            errors.append(f"{pid}: holdings debe ser una lista no vacía.")
+            continue
+        tickers = set()
+        total_weight = 0
+        for holding in holdings:
+            if not isinstance(holding, dict):
+                errors.append(f"{pid}: cada holding debe ser un objeto.")
+                continue
+            ticker = holding.get("ticker")
+            require(
+                isinstance(ticker, str) and bool(ticker) and ticker not in tickers,
+                f"{pid}: ticker inválido o duplicado.",
+            )
+            if isinstance(ticker, str):
+                tickers.add(ticker)
+            for field in ("display_name", "currency"):
+                require(
+                    isinstance(holding.get(field), str), f"{ticker}: falta {field}."
+                )
+            weight = holding.get("weight")
+            require(
+                _is_number(weight) and 0 < weight <= 1,
+                f"{ticker}: peso fuera de rango.",
+            )
+            if _is_number(weight):
+                total_weight += weight
+            metrics = holding.get("metrics")
+            if not isinstance(metrics, dict):
+                errors.append(f"{ticker}: metrics debe ser objeto.")
+            else:
+                for key in (
+                    "return_1y",
+                    "return_5y",
+                    "monthly_change_pct",
+                    "daily_change_pct",
+                ):
+                    require(
+                        metrics.get(key) is None or _is_number(metrics[key]),
+                        f"{ticker}: {key} no es finito.",
+                    )
+            series = holding.get("series")
+            history = series.get("price_history") if isinstance(series, dict) else None
+            if not isinstance(history, list):
+                errors.append(f"{ticker}: price_history debe ser una lista.")
+                continue
+            previous = None
+            for point in history:
+                if not isinstance(point, dict):
+                    errors.append(f"{ticker}: observación inválida.")
+                    continue
+                day, close = point.get("date"), point.get("close")
+                require(valid_date(day), f"{ticker}: fecha inválida.")
+                if valid_date(day):
+                    require(
+                        previous is None or day > previous,
+                        f"{ticker}: fechas duplicadas o desordenadas.",
+                    )
+                    previous = day
+                require(
+                    _is_number(close) and close > 0,
+                    f"{ticker}: precio no positivo o no finito.",
+                )
+        require(total_weight <= 1.001, f"{pid}: los pesos superan el 100 %.")
+    charts = payload.get("charts")
+    if not isinstance(charts, dict):
+        errors.append("charts debe ser un objeto.")
+    else:
+        timeseries = charts.get("timeseries_5y", {})
+        labels = timeseries.get("labels") if isinstance(timeseries, dict) else None
+        datasets = timeseries.get("datasets") if isinstance(timeseries, dict) else None
+        if not isinstance(labels, list) or not isinstance(datasets, list):
+            errors.append("La serie de gráficos debe contener labels y datasets.")
+        else:
+            require(
+                all(valid_date(day) for day in labels)
+                and labels == sorted(set(labels)),
+                "Fechas del gráfico inválidas.",
+            )
+            for dataset in datasets:
+                if not isinstance(dataset, dict) or not isinstance(
+                    dataset.get("data"), list
+                ):
+                    errors.append("Dataset del gráfico inválido.")
+                    continue
+                require(
+                    dataset.get("platform_id") in platform_ids,
+                    "Plataforma desconocida en gráfico.",
+                )
+                require(
+                    len(dataset["data"]) == len(labels),
+                    "Las fechas y los valores del gráfico no coinciden.",
+                )
+                require(
+                    all(v is None or _is_number(v) for v in dataset["data"]),
+                    "Valores del gráfico no finitos.",
+                )
+    if errors:
+        raise ValidationError(errors)
 
 
-def main(argv: Optional[Iterable[str]] = None) -> None:
-    args = parse_args(argv)
-    json_path: Path = args.json_path
-
-    if not json_path.exists():
-        raise SystemExit(f"No existe el archivo {json_path}")
-
-    with json_path.open("r", encoding="utf-8") as fh:
-        payload = json.load(fh)
-
-    try:
-        validate_payload(payload)
-    except ValidationError as error:
-        raise SystemExit(f"Estructura inválida:\n{error}") from error
-
-    print(f"{json_path} pasa la validación de estructura ✅")
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("json_path", type=Path)
+    args = parser.parse_args()
+    validate_payload(json.loads(args.json_path.read_text(encoding="utf-8")))
+    print(f"{args.json_path} pasa la validación de estructura y coherencia.")
 
 
 if __name__ == "__main__":

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import hmac
+import os
 from http.server import BaseHTTPRequestHandler
 from typing import Any, Dict, Iterable
 from urllib.parse import parse_qs, urlparse
@@ -21,7 +23,9 @@ class ApiHandler(BaseHTTPRequestHandler):
         return
 
 
-def send_options(handler: BaseHTTPRequestHandler, allowed_methods: Iterable[str]) -> None:
+def send_options(
+    handler: BaseHTTPRequestHandler, allowed_methods: Iterable[str]
+) -> None:
     handler.send_response(204)
     _send_common_headers(handler, allowed_methods=allowed_methods)
     handler.end_headers()
@@ -34,7 +38,9 @@ def send_json(
     *,
     extra_headers: Dict[str, str] | None = None,
 ) -> None:
-    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    body = json.dumps(
+        payload, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+    ).encode("utf-8")
     handler.send_response(status_code)
     _send_common_headers(handler, content_length=len(body))
     if extra_headers:
@@ -44,12 +50,16 @@ def send_json(
     handler.wfile.write(body)
 
 
-def send_error_json(handler: BaseHTTPRequestHandler, status_code: int, message: str) -> None:
+def send_error_json(
+    handler: BaseHTTPRequestHandler, status_code: int, message: str
+) -> None:
     send_json(handler, status_code, {"message": message})
 
 
 def read_json_body(handler: BaseHTTPRequestHandler) -> Dict[str, Any]:
     content_length = int(handler.headers.get("Content-Length", "0") or "0")
+    if content_length < 0 or content_length > 4096:
+        raise ValueError("El cuerpo JSON supera el límite de 4 KB.")
     if content_length <= 0:
         return {}
 
@@ -92,6 +102,28 @@ def is_truthy(value: Any) -> bool:
     return str(value).strip().lower() in {"1", "true", "yes", "si", "sí", "on"}
 
 
+def is_authorized(handler: BaseHTTPRequestHandler) -> bool:
+    secret = os.getenv("CRON_SECRET", "").strip()
+    return bool(secret) and hmac.compare_digest(
+        handler.headers.get("Authorization", "").encode("utf-8"),
+        f"Bearer {secret}".encode("utf-8"),
+    )
+
+
+def read_refresh_options(handler: BaseHTTPRequestHandler) -> tuple[dict, dict, bool]:
+    query = get_query_params(handler)
+    body = read_json_body(handler)
+    mode = first_param(query, "mode") or str(body.get("mode", "online")).strip().lower()
+    if mode != "online":
+        raise ValueError(
+            "Los endpoints HTTP sólo admiten cotizaciones reales (mode=online)."
+        )
+    force = is_truthy(first_param(query, "force")) or is_truthy(body.get("force"))
+    if force and not is_authorized(handler):
+        raise PermissionError("La actualización forzada requiere autorización.")
+    return query, body, force
+
+
 def _send_common_headers(
     handler: BaseHTTPRequestHandler,
     *,
@@ -100,7 +132,6 @@ def _send_common_headers(
 ) -> None:
     handler.send_header("Content-Type", "application/json; charset=utf-8")
     handler.send_header("Cache-Control", "no-store, max-age=0")
-    handler.send_header("Access-Control-Allow-Origin", "*")
     handler.send_header("Access-Control-Allow-Methods", ", ".join(allowed_methods))
     handler.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
     if content_length is not None:

@@ -11,7 +11,9 @@ class handler(ApiHandler):
         try:
             payload, meta = fetch_indicators_payload()
         except Exception as error:  # pragma: no cover - depende del entorno
-            send_error_json(self, 500, f"No se pudo cargar el snapshot de indicadores: {error}")
+            send_error_json(
+                self, 500, f"No se pudo cargar el snapshot de indicadores: {error}"
+            )
             return
 
         send_json(
@@ -21,5 +23,6 @@ class handler(ApiHandler):
             extra_headers={
                 "X-Portfolio-Storage": meta.source,
                 "X-Portfolio-Pathname": meta.pathname or "",
+                "X-Portfolio-Warning": meta.warning or "",
             },
         )

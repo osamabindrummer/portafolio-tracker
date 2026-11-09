@@ -1,0 +1,20 @@
+# Sólo se publican los archivos de la aplicación, sin entornos ni secretos locales.
+.git
+.vercel
+.venv
+.venv-*
+**/__pycache__
+**/*.pyc
+.uv-cache
+.pytest_cache
+.ruff_cache
+node_modules
+output
+.env
+.env.*
+.agents
+.github
+tests
+AGENTS.md
+README.md
+LINUX.md

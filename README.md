@@ -1,312 +1,114 @@
 # Portafolio Tracker
 
-Sitio estático con HTML, CSS y JS para visualizar y comparar inversiones de Racional y Fintual. El hosting principal es **Vercel** y los datasets públicos se sirven desde funciones y almacenamiento persistente.
+Aplicación estática con HTML, CSS y JavaScript para comparar componentes de carteras de Racional y Fintual. Las funciones Python de Vercel consultan cotizaciones e indicadores; Vercel Blob conserva snapshots. No requiere un framework de frontend ni una base de datos.
 
-## Estado actual de la arquitectura
+## Arquitectura
 
-- `index.html` y `assets/`: frontend estático servido por Vercel.
-- `api/data/latest`: entrega el dataset principal usado por la app.
-- `api/indicators`: entrega el snapshot del banner económico.
-- `api/refresh-data`: regenera `latest.json` en backend.
-- `api/refresh-indicators`: vuelve a consultar fuentes públicas en backend.
-- `api/refresh-all`: refresca ambos flujos con una sola llamada.
-- `api/cron/refresh`: endpoint pensado para Vercel Cron.
-- `Vercel Blob`: persistencia de los JSON generados en producción.
-- `data/latest.json` y `public/indicators/latest.json`: quedan como semillas locales y fallback inicial.
+- `index.html` y `assets/`: vista principal con métricas, tablas y gráficos.
+- `datos.html`: página de datos y metodología, enlazada desde el extremo derecho del pie de página; reúne resultados de actualización, cobertura, fechas y advertencias. El último intento se conserva durante la sesión del navegador.
+- `scripts/fetch_data.py`: configuración de carteras y descarga de históricos.
+- `scripts/portfolio.py`: métricas, gráficos, formato compacto y respuesta pública.
+- `scripts/validate_json.py`: validación de estructura y coherencia.
+- `backend/portfolio_refresh.py`: calidad, enfriamiento e indicadores.
+- `backend/storage.py`: archivos locales atómicos, Blob y recuperación.
+- `api/`: handlers compartidos por Vercel y el servidor local.
+- `data/latest.json`: semilla real compacta; un histórico por símbolo.
+- `public/indicators/latest.json`: semilla de indicadores.
 
-## Por qué esta combinación
+Los archivos compactos usan `schema_version: 2`. El lector también admite snapshots anteriores. Las métricas y los gráficos se reconstruyen desde los precios; la respuesta pública omite históricos internos. No se convierten monedas ni se normalizan los pesos configurados al 100 %.
 
-### `Vercel Functions`
+## Interpretación de las métricas
 
-Se usan porque permiten ejecutar backend sin montar un servidor propio. Es la opción más simple para un sitio que ya era estático.
+Los retornos son cambios acumulados de cierres ajustados en la moneda de cotización. Se muestran promedios ponderados sobre los componentes con datos para cada período, con su peso cubierto disponible en Datos y metodología. No equivalen a la rentabilidad histórica efectiva de un fondo: no incorporan comisiones, cambios de cartera ni conversión cambiaria.
 
-### `Vercel Blob`
+- Un mes significa los últimos 30 días; uno y cinco años usan aniversarios de calendario.
+- Se admite una diferencia máxima de siete días alrededor del inicio por cierres de mercado y límites de consulta. Una observación anterior al objetivo tampoco puede estar alejada más de siete días.
+- Sin cobertura del período, se muestra `--`; nunca se sustituye por el retorno desde el inicio.
+- La página Datos y metodología muestra por instrumento la fecha de cotización y una advertencia si supera siete días.
+- La fecha de generación del snapshot, la de composición y las fechas de precios son distintas. La compactación conserva las fechas históricas originales.
+- Los primeros ocho holdings de Risky Norris pueden sumar menos del 100 % del patrimonio. El resto no se estima.
 
-Se usa porque el filesystem de Vercel Functions es efímero y de solo lectura fuera de `/tmp`, así que no sirve para guardar datos que deban sobrevivir entre ejecuciones. Blob encaja mejor que KV o Postgres porque aquí estamos guardando archivos JSON completos, no datos relacionales ni claves sueltas.
+CFIETFGE.SN mantiene la verificación específica del histórico de Yahoo con cotización fechada y operaciones por hora. No se interpolan precios ni se inventan ajustes; los eventos corporativos no verificables impiden la recuperación. Las advertencias se conservan y se consultan en Datos y metodología.
 
-### `Vercel Cron`
+## Actualizaciones y seguridad
 
-Queda preparado para automatizar refresh sin depender de GitHub Actions. En Hobby, Vercel limita los cron jobs a una frecuencia máxima de una vez por día, así que una pauta tipo lunes/miércoles/viernes sí es viable, pero una horaria no.
+- Los endpoints HTTP sólo admiten `mode=online`; los ejemplos offline se generan exclusivamente mediante CLI en un archivo separado.
+- El botón público respeta `REFRESH_COOLDOWN_SECONDS` (600 segundos por defecto).
+- `force=true` requiere `Authorization: Bearer <CRON_SECRET>`; el secreto nunca forma parte del frontend.
+- El cron siempre exige ese secreto, incluso cuando la variable falta: sin configuración responde 401.
+- Las actualizaciones públicas siguen siendo públicas. El enfriamiento es una comprobación sobre el snapshot, no un límite distribuido ni autenticación de visitantes; para restringirlas por completo se necesita autenticación o un límite en la plataforma.
+- No se anuncia éxito ni se guarda si menos del 80 % del peso configurado de **cada** plataforma tiene históricos recientes descargados. La antigüedad máxima es de siete días.
+- Descargas vacías, que retroceden de fecha o pierden más del 20 % del histórico conservan los precios anteriores con advertencia. Esos datos conservados no cuentan como descarga reciente para el umbral de calidad.
+- Un fallo de actualización conserva las tablas visibles. Los errores parciales identifican el dataset afectado en Datos y metodología, sin añadir avisos extensos a la vista principal.
+- Las cotizaciones tienen un presupuesto de espera de 25 segundos con cuatro consultas simultáneas; los indicadores comparten 15 segundos entre sus dos fuentes. Las operaciones de almacenamiento añaden su propio tiempo. Vercel mantiene un máximo de 60 segundos por función. Una observación de indicadores no puede exceder siete días para UF/dólar, 45 para UTM o 62 para IPC; una respuesta antigua provoca el intento con la siguiente fuente.
 
-## Flujo de datos en producción
-
-1. El frontend carga `/api/data/latest` y `/api/indicators`.
-2. Esos endpoints leen desde Vercel Blob.
-3. Si Blob todavía no tiene datos, se usa el JSON versionado dentro del repo como fallback.
-4. Al hacer clic en `Actualizar datos`, la web llama `/api/refresh-all`.
-5. Por defecto, ese refresh general también intenta refrescar el banner económico.
-6. Al hacer clic en el banner económico, la web llama `/api/refresh-indicators`.
-7. El backend consulta fuentes públicas y guarda un snapshot normalizado.
-
-## Seguridad y límites reales
-
-- El endpoint público de refresh no expone secretos, pero al ser público no puede distinguir entre tu clic y el de otro visitante.
-- Para reducir abuso, el backend aplica un enfriamiento configurable con `REFRESH_COOLDOWN_SECONDS`.
-- Si en el futuro quieres que sólo tú puedas refrescar manualmente, habrá que añadir autenticación real.
-
-## Estructura relevante del repo
-
-- `assets/js/app.js`: coordina carga, refresh global y refresh del banner.
-- `assets/js/state.js`: consume `/api/data/latest` y `/api/refresh-all`.
-- `assets/js/indicators-banner.js`: consume `/api/indicators` y `/api/refresh-indicators`.
-- `backend/storage.py`: decide si usa archivos locales o Vercel Blob.
-- `backend/portfolio_refresh.py`: lógica de refresh, fallback entre fuentes públicas y enfriamiento.
-- `api/`: funciones serverless de Vercel.
-- `vercel.json`: rewrites, funciones y cron.
-- `.env.example`: plantilla de variables.
-
-## Variables de entorno
-
-### Requeridas en Vercel
-
-- `BLOB_READ_WRITE_TOKEN`
-- `CRON_SECRET`
-
-### Recomendadas
-
-- `REFRESH_COOLDOWN_SECONDS`
-- `REFRESH_ALL_INCLUDES_INDICATORS=true`
-- `CRON_REFRESH_INDICATORS=true`
-
-Notas:
-- `refresh-all` refresca indicadores por defecto, salvo que definas `REFRESH_ALL_INCLUDES_INDICATORS=false`
-- el cron refresca indicadores por defecto, salvo que definas `CRON_REFRESH_INDICATORS=false`
-
-### Opcionales para desarrollo local
-
-- `PORTFOLIO_STORAGE=local`
-
-### Indicadores usados en el banner
-
-- UF: `F073.UFF.PRE.Z.D`
-- UTM: `F073.UTR.PRE.Z.M`
-- Dólar observado: `F073.TCO.PRE.Z.D`
-- IPC anual: `F074.IPC.IND.Z.EP09.C.M`
-
-### Flujo de fuentes públicas
-
-1. El backend intenta primero `https://mindicador.cl/api`.
-2. Si falla, intenta `https://findic.cl/api`.
-3. Calcula `IPC anual` a partir de los últimos 12 IPC mensuales de la fuente activa.
-4. Normaliza el resultado a un JSON estable para el frontend.
+Blob conserva las últimas cinco versiones por dataset. La lectura pagina el listado y, si falla el snapshot más reciente, intenta versiones anteriores. Si Blob no está disponible utiliza la semilla local y expone una advertencia. La limpieza sólo se intenta después de guardar una versión nueva; un fallo de limpieza no invalida la escritura. Las escrituras locales usan reemplazo atómico.
 
 ## Desarrollo local
 
-### Prechecks
+Prechecks: trabajar desde la raíz del repositorio, disponer de Python **3.11–3.14** y dejar libre `127.0.0.1:3001`. El entorno anterior de este equipo usa Python 3.9; se conserva intacto. El entorno para revisión es `.venv-review`.
 
-- Asegúrate de estar en `/Users/dsj-imac/Developer/portafolio-tracker`.
-- Si quieres probar integración real con Vercel, necesitas tener `vercel login` listo.
-- Si sólo quieres validar lógica local, `PORTFOLIO_STORAGE=local` es suficiente.
+1. Crear el entorno e instalar las versiones verificadas:
 
-### Comandos
-
-1. Crear o reutilizar entorno virtual:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
+```sh
+python3.11 -m venv .venv-review
+.venv-review/bin/python -m pip install -r requirements.lock
 ```
 
-Qué deberías ver:
-- El prompt cambia y empieza a mostrar `(.venv)` o equivalente.
+2. Iniciar la aplicación:
 
-2. Instalar dependencias:
-
-```bash
-.venv/bin/python -m pip install -r requirements.txt
+```sh
+./scripts/dev.sh
 ```
 
-Qué deberías ver:
-- Instalación de `yfinance`, `pandas`, `numpy` y `vercel`.
-- El comando termina sin `ERROR`.
+El lanzador usa `.venv-review` por defecto. Para otro entorno compatible, indicar `PORTFOLIO_PYTHON=/ruta/al/python`. Verifica versión, dependencias y puerto antes de arrancar. No cambia automáticamente de dirección ni abre el navegador. Debe aparecer `Portafolio Tracker local: http://127.0.0.1:3001`.
 
-3. Crear variables locales:
+3. Abrir [la revisión local](http://127.0.0.1:3001/). El servidor incluye `X-Portfolio-App: portafolio-tracker-local` en sus respuestas como señal de identidad. Detener con `Ctrl+C`.
 
-```bash
-cp .env.example .env.local
+El servidor usa exclusivamente almacenamiento local y los handlers reales de `api/`. No carga credenciales remotas ni necesita Vercel CLI; sirve sólo la interfaz y sus assets. Esto evita el fallo `DEV_BUILDER_RESULT_HAS_MAXDURATION` observado con Vercel CLI 63.1.2 y el builder Python al usar `vercel dev`. El despliegue continúa usando Vercel Functions.
+
+## Validación
+
+Desde la raíz:
+
+```sh
+.venv-review/bin/python -m unittest discover -s tests -v
+.venv-review/bin/python -m scripts.validate_json data/latest.json
+.venv-review/bin/python -m compileall -q backend api scripts
+node --test tests/*.test.mjs
+for file in assets/js/*.js; do node --check "$file"; done
 ```
 
-Qué deberías ver:
-- No imprime nada si sale bien.
+Las pruebas simulan caídas externas y almacenamiento remoto; no escriben en el Blob real. En `.github/workflows/check.yml` se ejecutan en cada push y pull request. `update-data.yml` sigue siendo exclusivamente manual y ejecuta los scripts como módulos.
 
-4. Para validar sólo con archivos locales:
+Para generar ejemplos sin tocar la semilla:
 
-```bash
-PORTFOLIO_STORAGE=local vercel dev --listen 127.0.0.1:3001
+```sh
+.venv-review/bin/python -m scripts.fetch_data --offline --output /tmp/portfolio-example.json
 ```
 
-Qué deberías ver:
-- Un mensaje tipo `Ready! Available at http://127.0.0.1:3001`.
+Para actualizar cotizaciones locales reales, usar `python -m scripts.fetch_data` con el intérprete del entorno. Esta operación sí modifica `data/latest.json` cuando supera los controles. No es necesaria para revisar la interfaz.
 
-5. Abrir el sitio:
+Se usan yfinance, pandas y el paquete específico `vercel-blob`; no se instala el conjunto de servicios de Vercel. Todas las versiones de ejecución, incluidas las transitivas, se fijan en `requirements.lock`. Tanto `requirements.txt` como `pyproject.toml` toman ese archivo para reproducir la misma instalación en desarrollo, validación y Vercel. Una actualización de dependencias debe volver a generar el lock y pasar las pruebas, incluida la compatibilidad con Blob.
 
-```bash
-open http://127.0.0.1:3001
-```
+## Configuración de producción
 
-Qué deberías ver:
-- La app abre normal.
-- El botón intenta llamar a `/api/refresh-all`.
-- Si una fuente pública falla, el backend intentará la siguiente.
+Copiar los nombres de `.env.example` al configurar Vercel; no versionar valores secretos.
 
-### Verificación rápida local
+- `BLOB_READ_WRITE_TOKEN`: requerido para almacenamiento remoto.
+- `CRON_SECRET`: requerido para cron y solicitudes forzadas.
+- `REFRESH_COOLDOWN_SECONDS=600`.
+- `REFRESH_ALL_INCLUDES_INDICATORS=true`.
+- `CRON_REFRESH_INDICATORS=true`.
 
-```bash
-.venv/bin/python -m compileall backend api scripts
-node --check assets/js/app.js
-node --check assets/js/state.js
-node --check assets/js/indicators-banner.js
-node --check assets/js/ui.js
-```
+No configurar `PORTFOLIO_STORAGE=local` en producción. El adaptador informa por separado la ausencia de token y la incompatibilidad del SDK. El cron de `vercel.json` ejecuta lunes, miércoles y viernes a las 09:00 UTC.
 
-Qué deberías ver:
-- Sin errores de sintaxis.
+Endpoints: `GET /api/data/latest`, `GET /api/indicators`, `POST /api/refresh-data`, `POST /api/refresh-indicators`, `POST /api/refresh-all`, `GET /api/cron/refresh`.
 
-## Despliegue a Vercel
-
-### Prechecks
-
-- El repo remoto debe seguir siendo `osamabindrummer/portafolio-tracker`.
-- Debes tener acceso a Vercel con la cuenta donde quedará el proyecto.
-- Conviene hacer el primer deploy desde una rama limpia.
-
-### Secuencia recomendada
-
-1. Confirmar estado git:
-
-```bash
-git status
-```
-
-Qué deberías ver:
-- Archivos modificados por esta migración antes del commit.
-- Luego del commit, un working tree limpio.
-
-2. Commit de la migración:
-
-```bash
-git add .
-git commit -m "feat: migrate portfolio tracker to vercel backend"
-```
-
-Qué deberías ver:
-- Un commit nuevo con los archivos de `api/`, `backend/`, `vercel.json` y cambios frontend.
-
-3. Subir cambios:
-
-```bash
-git push origin main
-```
-
-Qué deberías ver:
-- `main -> main`.
-
-4. Vincular el proyecto con Vercel:
-
-```bash
-vercel link
-```
-
-Qué deberías ver:
-- Preguntas para elegir scope y proyecto.
-- Al final, un mensaje indicando que el directorio quedó vinculado.
-
-5. Crear o asociar Blob desde Vercel Dashboard:
-
-- Entra a Storage.
-- Crea un Blob Store.
-- Asígnalo al proyecto.
-
-Qué deberías ver:
-- Una integración de Blob asociada al proyecto.
-
-6. Cargar variables al proyecto:
-
-```bash
-vercel env add BLOB_READ_WRITE_TOKEN production
-vercel env add CRON_SECRET production
-vercel env add REFRESH_COOLDOWN_SECONDS production
-```
-
-Qué deberías ver:
-- Cada comando termina confirmando que la variable quedó guardada.
-
-7. Hacer primer deploy productivo:
-
-```bash
-vercel --prod
-```
-
-Qué deberías ver:
-- Build exitoso.
-- Una URL final de producción.
-
-8. Descargar variables para desarrollo local, si quieres probar con el mismo entorno:
-
-```bash
-vercel env pull .env.local
-```
-
-Qué deberías ver:
-- Un archivo `.env.local` actualizado.
-
-## Qué configurar en Vercel Dashboard
-
-1. Importar el repo `osamabindrummer/portafolio-tracker`.
-2. Verificar que el framework quede como `Other` o detección automática simple.
-3. Asociar un Blob Store al proyecto.
-4. Crear estas variables de entorno:
-   - `BLOB_READ_WRITE_TOKEN`
-   - `CRON_SECRET`
-   - `REFRESH_COOLDOWN_SECONDS`
-5. Confirmar que el cron de `vercel.json` quede habilitado después del deploy.
-6. Revisar en Logs que `/api/refresh-all` y `/api/refresh-indicators` respondan sin error.
-
-## GitHub Actions
-
-- `update-data.yml`: queda manual para refrescar `data/latest.json` si quieres mantener la semilla del repo desde GitHub.
-- No quedan workflows para Pages ni para el banner antiguo.
-
-## Endpoints resultantes
-
-- `GET /api/data/latest`
-- `GET /api/indicators`
-- `POST /api/refresh-data`
-- `POST /api/refresh-indicators`
-- `POST /api/refresh-all`
-- `GET /api/cron/refresh`
-
-## Checklist de verificación final
-
-- El sitio carga desde Vercel.
-- `Actualizar datos` devuelve una actualización real o un `skipped` razonable por enfriamiento.
-- El banner económico refresca sin exponer credenciales.
-- `data/latest` e `indicators/latest` responden desde `/api/...`.
-- Blob recibe nuevas versiones de JSON.
-
-## Uso en Linux
-
-[Guía para Linux](LINUX.md): instalación y apertura local desde la terminal.
-
-## Verificación del histórico de CFIETFGE.SN
-
-Los retornos usan cierres ajustados de Yahoo y se ponderan por el peso del holding.
-Para CFIETFGE.SN se contrasta el histórico diario con la cotización fechada de Yahoo.
-Si faltan sesiones recientes o aparecen saltos superiores al 25% entre sesiones
-cercanas, se comprueba la serie por hora de los últimos tres meses. Sólo se sustituyen
-cierres incompatibles o ausentes por el último precio observado en la misma fecha;
-no se interpolan precios ni se aplica un factor arbitrario. Si existen eventos
-corporativos durante la recuperación, falta corroboración o persisten saltos,
-el instrumento se marca sin datos y con una advertencia. Los dos packs reutilizan
-la misma consulta y se recalculan las métricas, los gráficos y los promedios ponderados.
-La recuperación queda registrada en `status.warnings` y visible en la tabla.
-
-Prueba de regresión: `.venv/bin/python -m unittest discover -s tests -v`.
+La publicación requiere autorización explícita. Antes de desplegar, revisar el diff y las pruebas. Después de publicar, verificar lectura/escritura real de Blob, protección del cron y respuesta pública. La validación local con almacenamiento simulado no demuestra esa integración remota.
 
 ## Actualización manual de Risky Norris
 
-La skill pertenece a este repositorio y está versionada en
-[.agents/skills/actualizar-risky-norris/SKILL.md](.agents/skills/actualizar-risky-norris/SKILL.md).
-Se invoca con `$actualizar-risky-norris` al trabajar en este proyecto, sólo bajo
-instrucción del usuario. Al clonar o sincronizar el repo se obtiene también la skill;
-no requiere una copia global en el equipo.
+La skill versionada en [.agents/skills/actualizar-risky-norris/SKILL.md](.agents/skills/actualizar-risky-norris/SKILL.md) se usa sólo cuando el usuario solicita actualizar esa composición. El helper `python -m scripts.update_fintual` admite la semilla compacta y conserva históricos, fuentes y fechas. Esta revisión no cambia la cartera configurada ni su fecha oficial.
+
+[Guía de Linux](LINUX.md).

@@ -1,4 +1,5 @@
 import { createCharts } from "./charts.js";
+import { escapeHTML, formatPercent, formatDateTime } from "./format.js";
 
 const PLATFORM_LOGOS = {
   racional: "assets/img/racional.png",
@@ -17,14 +18,6 @@ const PLATFORM_SUBTITLES = {
   racional_107_lir: "Pack 107 LIR",
 };
 
-const RACIONAL_DISPLAY_NAMES = {
-  "CFIETFGE.SN": "Singular Global Equities",
-  "IYWCL.SN": "iShares U.S. Technology",
-  "EEMCL.SN": "iShares MSCI Emerging Markets",
-  "CFMITNIPSA.SN": "IT NOW S&P IPSA",
-  "CFIETFCC.SN": "Singular Chile Corporativo",
-};
-
 const trendClass = (value) => {
   if (value === null || value === undefined) {
     return "value-neutral";
@@ -38,87 +31,7 @@ const trendClass = (value) => {
   return "value-neutral";
 };
 
-const formatPercent = (value, { signed = true, decimals = 2 } = {}) => {
-  if (value === null || value === undefined || Number.isNaN(value)) {
-    return "--";
-  }
-
-  const percentValue = value * 100;
-  const formatter = new Intl.NumberFormat("es-CL", {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  });
-
-  const formatted = formatter.format(Math.abs(percentValue));
-  if (!signed) {
-    return `${formatted}%`;
-  }
-
-  const sign = percentValue > 0 ? "+" : percentValue < 0 ? "-" : "";
-  return `${sign}${formatted}%`;
-};
-
-const formatDateTime = (isoString) => {
-  if (!isoString) {
-    return "--";
-  }
-  try {
-    const date = new Date(isoString);
-    const formatter = new Intl.DateTimeFormat("es-CL", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
-    return formatter.format(date);
-  } catch (error) {
-    console.warn("No se pudo formatear la fecha", error);
-    return isoString;
-  }
-};
-
-const formatShortDateTime = (isoString) => {
-  if (!isoString) {
-    return null;
-  }
-  try {
-    const date = new Date(isoString);
-    const pad = (value) => String(value).padStart(2, "0");
-    const day = pad(date.getDate());
-    const month = pad(date.getMonth() + 1);
-    const year = date.getFullYear();
-    const hours = pad(date.getHours());
-    const minutes = pad(date.getMinutes());
-    return `${day}-${month}-${year}, ${hours}:${minutes} hrs`;
-  } catch (error) {
-    console.warn("No se pudo formatear la fecha corta", error);
-    return null;
-  }
-};
-
-const computeWeightedMetric = (platform, metricKey) => {
-  if (!platform || !platform.holdings?.length) {
-    return null;
-  }
-  let weightedSum = 0;
-  let appliedWeight = 0;
-  platform.holdings.forEach((holding) => {
-    const value = holding.metrics?.[metricKey];
-    const weight = holding.weight ?? 0;
-    if (value === null || value === undefined || !weight) {
-      return;
-    }
-    weightedSum += value * weight;
-    appliedWeight += weight;
-  });
-  if (!appliedWeight) {
-    return null;
-  }
-  return weightedSum / appliedWeight;
-};
-
-const computeWeightedDailyChange = (platform) => computeWeightedMetric(platform, "daily_change_pct");
-const computeWeightedMonthlyChange = (platform) => computeWeightedMetric(platform, "monthly_change_pct");
-const computeWeightedReturn1Y = (platform) => computeWeightedMetric(platform, "return_1y");
-const computeWeightedReturn5Y = (platform) => computeWeightedMetric(platform, "return_5y");
+let renderedPlatforms = null;
 
 const renderLoading = ({ metricsGrid, tablesContainer, lastUpdate }) => {
   if (metricsGrid) {
@@ -127,7 +40,7 @@ const renderLoading = ({ metricsGrid, tablesContainer, lastUpdate }) => {
         <article class="metrics-card">
           <span class="metric-label">Cargando datos...</span>
           <strong class="metric-value">⏳</strong>
-          <span class="metric-footnote">Leyendo /api/data/latest</span>
+          <span class="metric-footnote">Consultando portafolio</span>
         </article>
       </div>
     `;
@@ -144,14 +57,14 @@ const renderLoading = ({ metricsGrid, tablesContainer, lastUpdate }) => {
   }
 };
 
-const renderError = ({ metricsGrid, tablesContainer }, message) => {
+const renderError = ({ metricsGrid, tablesContainer }) => {
   if (metricsGrid) {
     metricsGrid.innerHTML = `
       <div class="metrics-row">
         <article class="metrics-card">
           <span class="metric-label">Error</span>
           <strong class="metric-value">⚠️</strong>
-          <span class="metric-footnote">${message}</span>
+          <span class="metric-footnote">No se pudo cargar el portafolio. Consulta Datos y metodología.</span>
         </article>
       </div>
     `;
@@ -168,59 +81,54 @@ const buildMetricCard = (card) => `
   <article class="metrics-card">
     <span class="metric-label">${card.label}</span>
     <strong class="metric-value ${card.className ?? ""}">${card.value}</strong>
-    <span class="metric-footnote">${card.footnote}</span>
   </article>
 `;
 
-const buildPlatformMetricRow = (platform, currency) => {
+const buildPlatformMetricRow = (platform) => {
   if (!platform) {
     return "";
   }
 
   const summary = platform.summary ?? {};
-  const dailyChange = computeWeightedDailyChange(platform);
-  const monthlyChange = summary.avg_monthly_change ?? computeWeightedMonthlyChange(platform);
-  const return1Y = summary.avg_return_1y ?? computeWeightedReturn1Y(platform);
-  const return5Y = summary.avg_return_5y ?? computeWeightedReturn5Y(platform);
+  const dailyChange = summary.avg_daily_change ?? null;
+  const monthlyChange = summary.avg_monthly_change ?? null;
+  const return1Y = summary.avg_return_1y ?? null;
+  const return5Y = summary.avg_return_5y ?? null;
   const platformId = platform.id ?? "";
   const logoSrc = PLATFORM_LOGOS[platformId] ?? null;
   const platformSubtitle = PLATFORM_SUBTITLES[platformId] ?? null;
-  const platformMeta = `${platform.holdings?.length ?? 0} activos · Moneda ${currency}`;
 
   const cards = [
     {
       label: "Variación diaria",
       value: formatPercent(dailyChange),
-      footnote: "Media ponderada del día",
       className: trendClass(dailyChange ?? 0),
     },
     {
       label: "Variación mensual",
       value: formatPercent(monthlyChange),
-      footnote: "Últimos 30 días",
       className: trendClass(monthlyChange ?? 0),
     },
     {
       label: "Retorno 1 año",
       value: formatPercent(return1Y),
-      footnote: "Horizonte 1Y",
       className: trendClass(return1Y ?? 0),
     },
     {
       label: "Retorno 5 años",
       value: formatPercent(return5Y),
-      footnote: "Horizonte 5Y",
       className: trendClass(return5Y ?? 0),
     },
   ];
 
   const metricsCards = cards.map((card) => buildMetricCard(card)).join("\n");
-  const platformClass = platformId ? ` metrics-card--${platformId}` : "";
+  const platformClass = platformId
+    ? ` metrics-card--${escapeHTML(platformId)}`
+    : "";
   const platformCard = `
     <article
       class="metrics-card metrics-card--platform${platformClass}"
-      title="${platformMeta}"
-      data-platform="${platformId}"
+      data-platform="${escapeHTML(platformId)}"
     >
       ${
         logoSrc
@@ -228,8 +136,8 @@ const buildPlatformMetricRow = (platform, currency) => {
                <img src="${logoSrc}" alt="" aria-hidden="true" class="platform-logo" />
                ${platformSubtitle ? `<span class="platform-subtitle">${platformSubtitle}</span>` : ""}
              </div>
-             <span class="sr-only">${platform.name}</span>`
-          : `<strong class="metric-value">${platform.name}</strong>`
+             <span class="sr-only">${escapeHTML(platform.name)}</span>`
+          : `<strong class="metric-value">${escapeHTML(platform.name)}</strong>`
       }
     </article>
   `;
@@ -257,7 +165,7 @@ const buildMetricsGrid = (state) => {
   }
 
   return platforms
-    .map((platform) => buildPlatformMetricRow(platform, state?.currency ?? "USD"))
+    .map((platform) => buildPlatformMetricRow(platform))
     .join("\n");
 };
 
@@ -284,8 +192,7 @@ const buildHoldingsRows = (platform) => {
         ticker && ticker !== "--"
           ? `https://finance.yahoo.com/quote/${encodeURIComponent(quoteSymbol)}/`
           : null;
-      const racionalDisplayName = platform.id === "racional" ? RACIONAL_DISPLAY_NAMES[ticker] : null;
-      const displayName = racionalDisplayName ?? holding.display_name ?? "--";
+      const displayName = holding.display_name ?? "--";
 
       return `
         <tr>
@@ -293,14 +200,12 @@ const buildHoldingsRows = (platform) => {
             <strong>
               ${
                 tickerLink
-                  ? `<a href="${tickerLink}" target="_blank" rel="noopener noreferrer">${ticker}</a>`
-                  : ticker
+                  ? `<a href="${tickerLink}" target="_blank" rel="noopener noreferrer">${escapeHTML(ticker)}</a>`
+                  : escapeHTML(ticker)
               }
             </strong>
           </td>
-          <td>${displayName}${holding.status?.warnings?.length
-            ? `<br><small class="holding-data-note">${holding.status.missing_data ? "Datos sin verificar" : "Histórico recuperado"}</small>`
-            : ""}</td>
+          <td>${escapeHTML(displayName)}</td>
           <td class="numeric">${formatPercent(weight, { signed: false })}</td>
           <td class="numeric ${trendClass(monthlyChange)}">${formatPercent(monthlyChange)}</td>
           <td class="numeric ${trendClass(return1Y)}">${formatPercent(return1Y)}</td>
@@ -316,16 +221,9 @@ const buildHoldingsTable = (platform) => {
     return "";
   }
 
-  let platformTitle = platform.name;
+  let platformTitle = escapeHTML(platform.name);
   if (platform.id === "fintual") {
     platformTitle = `Fintual - <a href="https://fintual.cl/risky-norris" target="_blank" rel="noopener noreferrer">Risky Norris</a>`;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(platform.portfolio_as_of ?? "")) {
-      const portfolioDate = new Date(`${platform.portfolio_as_of}T12:00:00Z`);
-      const dateLabel = new Intl.DateTimeFormat("es-CL", {
-        day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
-      }).format(portfolioDate);
-      platformTitle += ` (cartera al ${dateLabel})`;
-    }
   } else if (platform.id === "racional") {
     platformTitle = "Racional - Pack ETF";
   }
@@ -391,13 +289,13 @@ const setupChartPlatformSelect = (state, callback) => {
   chartPlatformSelect.innerHTML = platforms
     .map(
       (platform) => `
-        <option value="${platform.id}">${PLATFORM_OPTION_LABELS[platform.id] ?? platform.name}</option>
-      `
+        <option value="${escapeHTML(platform.id)}">${escapeHTML(PLATFORM_OPTION_LABELS[platform.id] ?? platform.name)}</option>
+      `,
     )
     .join("\n");
 
   chartPlatformSelect.value = state?.activePlatformId ?? platforms[0].id;
-  chartPlatformSelect.disabled = state?.status !== "ready" && state?.status !== "refreshing";
+  chartPlatformSelect.disabled = state?.status !== "ready";
 
   if (callback) {
     chartPlatformSelect.onchange = (event) => {
@@ -417,6 +315,9 @@ const setupRefreshButton = (state, callback) => {
 
   const shouldDisable = isLoading || isRefreshing;
 
+  refreshButton.textContent = isRefreshing
+    ? "Actualizando..."
+    : "Actualizar datos";
   refreshButton.disabled = shouldDisable;
   refreshButton.classList.toggle("is-loading", isRefreshing);
   refreshButton.dataset.state = state.status ?? "loading";
@@ -432,7 +333,7 @@ const setupChartModeSelect = (state, callback) => {
     return;
   }
 
-  const isReady = state.status === "ready" || state.status === "refreshing";
+  const isReady = state.status === "ready";
   const currentMode = state.chartMode ?? "return_1y";
 
   chartModeSelect.value = currentMode;
@@ -457,70 +358,39 @@ export const renderUI = (state, callbacks = {}) => {
 
   if (lastUpdate) {
     const hasGeneratedAt = Boolean(state.generatedAt);
-    const currentLabel = hasGeneratedAt ? formatDateTime(state.generatedAt) : "--";
-    const previousTimestamp = state.previousGeneratedAt;
-    const hasPrevious =
-      Boolean(previousTimestamp) && previousTimestamp !== state.generatedAt;
-    const previousLabel = hasPrevious ? formatDateTime(previousTimestamp) : null;
-
-    lastUpdate.textContent = hasPrevious
-      ? `Última actualización: ${currentLabel} · Anterior: ${previousLabel}`
-      : `Última actualización: ${currentLabel}`;
+    const currentLabel = hasGeneratedAt
+      ? formatDateTime(state.generatedAt)
+      : "--";
+    lastUpdate.textContent = `Última actualización: ${currentLabel}`;
   }
 
   if (refreshStatus) {
-    const stateStatus = state.status ?? "loading";
-    let statusText = "El botón pedirá una actualización real al backend de Vercel.";
-    let statusTone = "idle";
-
-    if (stateStatus === "loading") {
-      statusText = "Cargando datos iniciales...";
-      statusTone = "progress";
-    } else if (stateStatus === "refreshing") {
-      statusText = "Solicitando una actualización real al backend...";
-      statusTone = "progress";
-    } else if (stateStatus === "error") {
-      const message =
-        typeof state.error === "string" && state.error.trim().length
-          ? state.error.trim()
-          : "Error desconocido al cargar los datos.";
-      statusText = `No se pudo actualizar: ${message}`;
-      statusTone = "error";
-    } else if (typeof state.statusMessage === "string" && state.statusMessage.trim().length) {
-      statusText = state.statusMessage.trim();
-      statusTone = "idle";
-    } else {
-      statusText = "Haz clic para pedir un refresh real del backend y luego recargar la vista.";
-      statusTone = "idle";
-    }
-
-    refreshStatus.textContent = statusText;
-
-    if (statusTone) {
-      refreshStatus.dataset.state = statusTone;
-    } else {
-      delete refreshStatus.dataset.state;
-    }
+    refreshStatus.textContent =
+      state.status === "refreshing"
+        ? "Actualizando datos..."
+        : state.statusMessage
+          ? "Consulta Datos y metodología para ver el resultado de la actualización."
+          : "";
   }
 
   if (state.status === "loading") {
+    renderedPlatforms = null;
     renderLoading({ metricsGrid, tablesContainer, lastUpdate });
     createCharts(state);
     return;
   }
 
   if (state.status === "error") {
-    renderError({ metricsGrid, tablesContainer }, state.error ?? "No se pudo cargar la información.");
+    renderedPlatforms = null;
+    renderError({ metricsGrid, tablesContainer });
     createCharts(state);
     return;
   }
 
-  if (metricsGrid) {
-    metricsGrid.innerHTML = buildMetricsGrid(state);
-  }
-
-  if (tablesContainer) {
-    tablesContainer.innerHTML = buildHoldingsTables(state);
+  if (renderedPlatforms !== state.platforms) {
+    if (metricsGrid) metricsGrid.innerHTML = buildMetricsGrid(state);
+    if (tablesContainer) tablesContainer.innerHTML = buildHoldingsTables(state);
+    renderedPlatforms = state.platforms;
   }
 
   createCharts(state);

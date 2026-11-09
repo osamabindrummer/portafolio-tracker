@@ -1,22 +1,14 @@
+import { readPreference, writePreference } from "./http.js";
+
 const STORAGE_KEY = "portafolio-tracker:theme";
 let cachedPreference = null;
-
-const getStorage = () => {
-  try {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    return window.localStorage;
-  } catch (error) {
-    return null;
-  }
-};
 
 const getSystemPreference = () => {
   if (typeof window === "undefined") {
     return "light";
   }
-  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+  return window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches
     ? "dark"
     : "light";
 };
@@ -54,17 +46,16 @@ const applyTheme = (theme) => {
 
   root.dataset.theme = nextTheme;
   updateToggleButton(nextTheme);
-  window.dispatchEvent(new CustomEvent("themechange", { detail: { theme: nextTheme } }));
+  window.dispatchEvent(
+    new CustomEvent("themechange", { detail: { theme: nextTheme } }),
+  );
 };
 
 const resolveInitialTheme = () => {
-  const storage = getStorage();
-  if (storage) {
-    const stored = storage.getItem(STORAGE_KEY);
-    if (stored === "dark" || stored === "light") {
-      cachedPreference = stored;
-      return stored;
-    }
+  const stored = readPreference(STORAGE_KEY);
+  if (stored === "dark" || stored === "light") {
+    cachedPreference = stored;
+    return stored;
   }
 
   return getSystemPreference();
@@ -97,20 +88,16 @@ const setupToggle = () => {
   }
 
   toggleButton.addEventListener("click", () => {
-    const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-    const storage = getStorage();
+    const nextTheme =
+      document.documentElement.dataset.theme === "dark" ? "light" : "dark";
     const systemPreference = getSystemPreference();
 
     if (nextTheme === systemPreference) {
       cachedPreference = null;
-      if (storage) {
-        storage.removeItem(STORAGE_KEY);
-      }
+      writePreference(STORAGE_KEY, null);
     } else {
       cachedPreference = nextTheme;
-      if (storage) {
-        storage.setItem(STORAGE_KEY, nextTheme);
-      }
+      writePreference(STORAGE_KEY, nextTheme);
     }
 
     applyTheme(nextTheme);

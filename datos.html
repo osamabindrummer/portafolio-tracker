@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datos y metodología · Portafolio Tracker</title>
+    <link rel="stylesheet" href="assets/css/styles.css?v=20261109-3">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="branding">
+          <img class="branding-mark" src="assets/img/portfolio-mark.png" alt="" aria-hidden="true">
+          <div class="branding-text">
+            <h1>Portafolio Tracker</h1>
+            <p class="tagline">Datos y metodología</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <div class="actions-buttons">
+            <a class="data-link" href="/">Volver al portafolio</a>
+            <button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="false">
+              <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">☀️</span>
+              <span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">🌙</span>
+              <span class="sr-only theme-toggle__sr-label">Cambiar a modo oscuro</span>
+            </button>
+          </div>
+        </div>
+      </header>
+      <main class="app-main data-main">
+        <article class="data-document">
+          <header class="section-header">
+            <h2>Datos y metodología</h2>
+            <p class="section-subtitle">Fechas, cobertura y criterios detrás de las cifras del portafolio.</p>
+          </header>
+          <nav class="data-index" aria-label="Contenido de datos y metodología">
+            <a href="#actualizacion">Actualización</a>
+            <a href="#carteras">Carteras y cobertura</a>
+            <a href="#indicadores">Indicadores</a>
+            <a href="#metodologia">Cómo leer los datos</a>
+          </nav>
+          <section id="actualizacion" class="data-section" aria-labelledby="update-title">
+            <h3 id="update-title">Actualización</h3>
+            <div id="update-result" role="status">Consultando el estado de los datos...</div>
+            <div id="data-source"></div>
+          </section>
+          <section id="carteras" class="data-section" aria-labelledby="coverage-title">
+            <h3 id="coverage-title">Carteras y cobertura</h3>
+            <p class="data-muted">El peso con datos se expresa sobre el patrimonio configurado, sin completar ni normalizar los instrumentos ausentes.</p>
+            <div id="portfolio-details" aria-live="polite">Cargando carteras...</div>
+          </section>
+          <section id="indicadores" class="data-section" aria-labelledby="indicators-title">
+            <h3 id="indicators-title">Indicadores económicos</h3>
+            <div id="indicator-details" aria-live="polite">Cargando indicadores...</div>
+          </section>
+          <section id="metodologia" class="data-section" aria-labelledby="methodology-title">
+            <h3 id="methodology-title">Cómo leer los datos</h3>
+            <h4>Qué representan los promedios</h4>
+            <p>Las métricas rápidas son promedios ponderados de los componentes actuales que tienen datos para cada período. No representan la rentabilidad histórica efectiva del fondo: no incluyen comisiones, cambios de composición ni conversión de moneda.</p>
+            <p>Racional se muestra en CLP y los instrumentos de Fintual en USD. Los ocho holdings seleccionados de Risky Norris pueden representar menos del 100 % de su patrimonio; el resto no se estima.</p>
+            <h4>Períodos e históricos insuficientes</h4>
+            <p>Los retornos se calculan con cierres ajustados. La variación mensual cubre 30 días; los retornos de uno y cinco años usan aniversarios de calendario. Se admite una diferencia máxima de siete días en la fecha inicial por cierres de mercado y límites de consulta. El gráfico normaliza cada instrumento a 100 desde su primera observación disponible.</p>
+            <p>“--” indica que el histórico no cubre el período. No se sustituye por el retorno desde el inicio ni se inventan precios. Las fechas de generación, composición de cartera y cotización pueden ser distintas.</p>
+            <h4>Conservación y verificación</h4>
+            <p>Una actualización necesita históricos recientes descargados para al menos el 80 % del peso configurado de cada cartera. Las cotizaciones de más de siete días se consideran desactualizadas. Si una descarga falla o pierde gran parte del histórico, se conservan los datos anteriores y se registra la advertencia.</p>
+            <p>CFIETFGE.SN incluye una comprobación adicional con operaciones por hora y una cotización fechada de Yahoo. Los precios recuperados mantienen su advertencia; no se interpolan valores ni se estiman ajustes por eventos corporativos.</p>
+            <h4>Indicadores y actualización manual</h4>
+            <p>Los indicadores se consultan primero en <a href="https://mindicador.cl" target="_blank" rel="noopener noreferrer">mindicador.cl</a> y luego en <a href="https://findic.cl" target="_blank" rel="noopener noreferrer">findic.cl</a> si la primera fuente falla o está desactualizada. El IPC anual compone doce variaciones mensuales consecutivas. La fecha de cada observación se muestra por separado de la consulta.</p>
+            <p>El botón de actualización respeta un intervalo mínimo entre consultas. Un resultado parcial puede actualizar los indicadores y conservar el portafolio anterior. El detalle del último intento completado se guarda en esta sesión del navegador, cuando éste permite almacenamiento.</p>
+          </section>
+          <a class="data-link" href="/">Volver al portafolio</a>
+        </article>
+      </main>
+      <footer class="app-footer"><p>Portafolio Tracker · 2026</p></footer>
+    </div>
+    <script type="module" src="assets/js/data-page.js?v=20261109-3"></script>
+  </body>
+</html>

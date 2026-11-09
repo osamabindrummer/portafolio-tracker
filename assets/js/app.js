@@ -1,7 +1,16 @@
-import { loadInitialState, reloadState, setActivePlatform, triggerPortfolioRefresh } from "./state.js";
+import { rememberUpdate } from "./update-status.js";
+import {
+  loadInitialState,
+  reloadState,
+  setActivePlatform,
+  triggerPortfolioRefresh,
+} from "./state.js";
 import { renderUI } from "./ui.js";
 import { initTheme } from "./theme.js";
-import { initIndicatorsBanner, refreshIndicatorsBanner } from "./indicators-banner.js?v=20260914-2";
+import {
+  initIndicatorsBanner,
+  refreshIndicatorsBanner,
+} from "./indicators-banner.js";
 import { initMarketWidget } from "./market-widget.js";
 
 initTheme();
@@ -29,7 +38,10 @@ const syncIndicatorsBannerRefresh = () => {
     return;
   }
 
-  const isBusy = appState.status === "loading" || appState.status === "refreshing" || isBannerRefreshing;
+  const isBusy =
+    appState.status === "loading" ||
+    appState.status === "refreshing" ||
+    isBannerRefreshing;
   banner.disabled = isBusy;
   banner.setAttribute("aria-busy", isBusy ? "true" : "false");
   banner.onclick = () => {
@@ -49,11 +61,22 @@ const bootstrap = async () => {
     appState = { ...loadedState, chartMode: currentMode };
   } catch (error) {
     console.error("Error inicializando la aplicación", error);
+    rememberUpdate({
+      scope: "load",
+      failed: true,
+      message:
+        error instanceof Error
+          ? error.message
+          : "No se pudo cargar el portafolio.",
+    });
     appState = {
       status: "error",
       chartMode: currentMode,
       statusMessage: null,
-      error: error instanceof Error ? error.message : "Error desconocido al cargar los datos.",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Error desconocido al cargar los datos.",
     };
   }
 
@@ -73,17 +96,28 @@ const handleRefresh = async () => {
     return;
   }
 
+  const previousState = appState;
   const preferredPlatformId = appState.activePlatformId ?? null;
   const currentMode = appState.chartMode ?? "return_1y";
   appState = {
     ...appState,
     status: "refreshing",
-    statusMessage: "Solicitando una actualización real al backend de Vercel...",
+    statusMessage: "Actualizando cotizaciones...",
+    refreshFailed: false,
   };
   render();
 
   try {
     const refreshResult = await triggerPortfolioRefresh();
+    rememberUpdate({
+      scope: "portfolio",
+      message: buildRefreshMessage(refreshResult),
+      failed: Boolean(
+        refreshResult.errors && Object.keys(refreshResult.errors).length,
+      ),
+      results: refreshResult.results ?? {},
+      errors: refreshResult.errors ?? {},
+    });
     const refreshedState = await reloadState(appState);
     const fallbackId = refreshedState.platformIndex[preferredPlatformId]
       ? preferredPlatformId
@@ -93,15 +127,28 @@ const handleRefresh = async () => {
       activePlatformId: fallbackId,
       chartMode: currentMode,
       statusMessage: buildRefreshMessage(refreshResult),
+      refreshFailed: Boolean(
+        refreshResult.errors && Object.keys(refreshResult.errors).length,
+      ),
     };
     await initIndicatorsBanner();
   } catch (error) {
     console.error("Error al refrescar los datos", error);
+    rememberUpdate({
+      scope: "portfolio",
+      failed: true,
+      message:
+        error instanceof Error
+          ? error.message
+          : "No se pudo actualizar el portafolio.",
+    });
     appState = {
-      status: "error",
-      chartMode: currentMode,
-      statusMessage: null,
-      error: error instanceof Error ? error.message : "Error desconocido al refrescar los datos.",
+      ...previousState,
+      status: previousState.platforms?.length ? "ready" : "error",
+      error: error instanceof Error ? error.message : "No se pudo actualizar.",
+      statusMessage:
+        "No se pudo actualizar. Se conservan los últimos datos disponibles.",
+      refreshFailed: true,
     };
   }
 
@@ -109,27 +156,46 @@ const handleRefresh = async () => {
 };
 
 const handleIndicatorsRefresh = async () => {
-  if (isBannerRefreshing || appState.status === "loading" || appState.status === "refreshing") {
+  if (
+    isBannerRefreshing ||
+    appState.status === "loading" ||
+    appState.status === "refreshing"
+  ) {
     return;
   }
 
   isBannerRefreshing = true;
   appState = {
     ...appState,
-    statusMessage: "Actualizando indicadores públicos desde el backend...",
+    statusMessage: "Actualizando indicadores...",
+    refreshFailed: false,
   };
   render();
 
   try {
     const result = await refreshIndicatorsBanner();
+    rememberUpdate({
+      scope: "indicators",
+      failed: false,
+      message: buildBannerRefreshMessage(result),
+    });
     appState = {
       ...appState,
       statusMessage: buildBannerRefreshMessage(result),
     };
   } catch (error) {
     console.error("Error al refrescar el banner de indicadores", error);
+    rememberUpdate({
+      scope: "indicators",
+      failed: true,
+      message:
+        error instanceof Error
+          ? error.message
+          : "No se pudieron actualizar los indicadores.",
+    });
     appState = {
       ...appState,
+      refreshFailed: true,
       statusMessage:
         error instanceof Error
           ? `No se pudo actualizar el banner: ${error.message}`
@@ -151,31 +217,36 @@ const handleChartModeChange = (mode) => {
 
 const buildRefreshMessage = (result) => {
   if (result?.errors && Object.keys(result.errors).length) {
-    return "La actualización terminó de forma parcial. Revisa qué dataset no pudo refrescarse.";
+    return `Actualización parcial: ${Object.entries(result.errors)
+      .map(
+        ([key, message]) =>
+          `${key === "latest" ? "Portafolio" : "Indicadores"}: ${message}`,
+      )
+      .join(" · ")}`;
   }
 
   const latestStatus = result?.results?.latest?.status ?? null;
   const indicatorsStatus = result?.results?.indicators?.status ?? null;
 
   if (latestStatus === "updated" || indicatorsStatus === "updated") {
-    return "La web pidió una actualización real y ya está mostrando la versión más reciente.";
+    return "Datos actualizados.";
   }
 
   if (latestStatus === "skipped" && indicatorsStatus === "skipped") {
-    return "El backend respondió que ambos datasets ya estaban frescos, por eso no regeneró nada.";
+    return "Los datos ya estaban actualizados.";
   }
 
-  return "La actualización terminó, pero el backend no devolvió un detalle completo.";
+  return "La consulta finalizó sin detalles adicionales.";
 };
 
 const buildBannerRefreshMessage = (result) => {
   if (result?.status === "updated") {
-    return "El banner de indicadores se actualizó con un refresh real del backend.";
+    return "Indicadores actualizados.";
   }
   if (result?.status === "skipped") {
-    return "Los indicadores ya estaban frescos, así que el backend evitó repetir la consulta.";
+    return "Los indicadores ya estaban actualizados.";
   }
-  return "El banner terminó su refresh, pero sin un detalle adicional.";
+  return "La consulta de indicadores finalizó.";
 };
 
 bootstrap();

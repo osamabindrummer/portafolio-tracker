@@ -1,53 +1,15 @@
+import { requestJSON, readPreference, writePreference } from "./http.js";
+
 const DATA_ENDPOINT = "/api/data/latest";
 const REFRESH_ENDPOINT = "/api/refresh-all";
 const STORAGE_KEY = "portfolioTracker:lastGeneratedAt";
 
-const safeReadLocalStorage = (key) => {
-  if (typeof window === "undefined" || !window.localStorage) {
-    return null;
-  }
-  try {
-    return window.localStorage.getItem(key);
-  } catch (error) {
-    console.warn("No se pudo leer localStorage:", error);
-    return null;
-  }
-};
-
-const safeWriteLocalStorage = (key, value) => {
-  if (typeof window === "undefined" || !window.localStorage) {
-    return;
-  }
-  try {
-    window.localStorage.setItem(key, value);
-  } catch (error) {
-    console.warn("No se pudo escribir en localStorage:", error);
-  }
-};
-
-const buildDataRequestUrl = (baseUrl) => {
-  const requestUrl = new URL(baseUrl, window.location.origin);
-  const cacheBuster = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  requestUrl.searchParams.set("cacheBust", cacheBuster);
-  return requestUrl.toString();
-};
-
-const fetchFromEndpoint = async (endpoint) => {
-  const response = await fetch(buildDataRequestUrl(endpoint), {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-
-  return response.json();
-};
-
 const fetchPortfolioData = async () => {
-  const data = await fetchFromEndpoint(DATA_ENDPOINT);
-  console.info(`Datos de portafolio cargados desde ${DATA_ENDPOINT}`);
-  return { data, endpoint: DATA_ENDPOINT };
+  const { payload: data, warning } = await requestJSON(DATA_ENDPOINT);
+  if (!Array.isArray(data.platforms) || !data.platforms.length) {
+    throw new Error("El portafolio no contiene plataformas válidas.");
+  }
+  return { data, endpoint: DATA_ENDPOINT, warning };
 };
 
 const buildPlatformIndex = (platforms) =>
@@ -61,51 +23,34 @@ const pickActivePlatform = (platforms, preferredId) => {
     return null;
   }
 
-  if (preferredId && platforms.some((platform) => platform.id === preferredId)) {
+  if (
+    preferredId &&
+    platforms.some((platform) => platform.id === preferredId)
+  ) {
     return preferredId;
   }
 
   return platforms[0].id;
 };
 
-const readPreviousGeneratedAt = () => {
-  if (typeof window === "undefined" || !window.localStorage) {
-    return null;
-  }
-  try {
-    return window.localStorage.getItem(STORAGE_KEY);
-  } catch (error) {
-    console.warn("No se pudo leer localStorage:", error);
-    return null;
-  }
-};
-
-const storeGeneratedAt = (value) => {
-  if (typeof window === "undefined" || !window.localStorage) {
-    return;
-  }
-  if (!value) {
-    return;
-  }
-  try {
-    window.localStorage.setItem(STORAGE_KEY, value);
-  } catch (error) {
-    console.warn("No se pudo escribir en localStorage:", error);
-  }
-};
-
-const buildStateFromData = (data, preferredPlatformId = null, sourceEndpoint = null) => {
+const buildStateFromData = (
+  data,
+  preferredPlatformId = null,
+  sourceEndpoint = null,
+  storageWarning = null,
+) => {
   const platforms = data.platforms ?? [];
   const platformIndex = buildPlatformIndex(platforms);
   const activePlatformId = pickActivePlatform(platforms, preferredPlatformId);
-  const previousGeneratedAt = readPreviousGeneratedAt();
+  const previousGeneratedAt = readPreference(STORAGE_KEY);
 
-  storeGeneratedAt(data.generated_at);
+  if (data.generated_at) writePreference(STORAGE_KEY, data.generated_at);
 
   return {
     status: "ready",
     error: null,
     statusMessage: null,
+    storageWarning,
     generatedAt: data.generated_at ?? null,
     previousGeneratedAt,
     currency: data.currency ?? "USD",
@@ -119,44 +64,22 @@ const buildStateFromData = (data, preferredPlatformId = null, sourceEndpoint = n
 };
 
 export const loadInitialState = async () => {
-  const { data, endpoint } = await fetchPortfolioData();
-  return buildStateFromData(data, null, endpoint);
+  const { data, endpoint, warning } = await fetchPortfolioData();
+  return buildStateFromData(data, null, endpoint, warning);
 };
 
 export const reloadState = async (currentState) => {
-  const { data, endpoint } = await fetchPortfolioData();
+  const { data, endpoint, warning } = await fetchPortfolioData();
   const preferredId = currentState?.activePlatformId ?? null;
-  return buildStateFromData(data, preferredId, endpoint);
+  return buildStateFromData(data, preferredId, endpoint, warning);
 };
 
-export const triggerPortfolioRefresh = async ({ force = false, mode = "online" } = {}) => {
-  const response = await fetch(REFRESH_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ force, mode }),
+export const triggerPortfolioRefresh = async () => {
+  const { payload } = await requestJSON(REFRESH_ENDPOINT, {
+    body: {},
+    timeout: 55000,
   });
-
-  let payload = null;
-  try {
-    payload = await response.json();
-  } catch (error) {
-    payload = null;
-  }
-
-  if (!response.ok) {
-    const message =
-      typeof payload?.message === "string" && payload.message.trim().length
-        ? payload.message
-        : `HTTP ${response.status}`;
-    throw new Error(message);
-  }
-
-  return payload ?? {
-    status: "updated",
-    message: "La actualización terminó sin detalles adicionales.",
-  };
+  return payload;
 };
 
 export const setActivePlatform = (state, platformId) => {

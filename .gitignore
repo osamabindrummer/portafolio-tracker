@@ -10,3 +10,8 @@ __pycache__/
 node_modules/
 .uv-cache/
 *.pyc
+.venv-review/
+output/playwright/
+
+.env
+*.egg-info/

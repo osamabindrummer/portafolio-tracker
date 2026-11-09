@@ -1,4 +1,5 @@
-const WIDGET_SRC = "https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js";
+const WIDGET_SRC =
+  "https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js";
 
 const SYMBOLS = [
   "NASDAQ:NVDA|1D|USD",
@@ -26,7 +27,9 @@ const buildConfig = (theme) => {
     lineType: 0,
     chartType: "area",
     fontColor: isDark ? "rgb(177, 182, 190)" : "rgb(106, 109, 120)",
-    gridLineColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(46, 46, 46, 0.06)",
+    gridLineColor: isDark
+      ? "rgba(255, 255, 255, 0.08)"
+      : "rgba(46, 46, 46, 0.06)",
     volumeUpColor: "rgba(34, 171, 148, 0.5)",
     volumeDownColor: "rgba(247, 82, 95, 0.5)",
     backgroundColor: isDark ? "#131722" : "#ffffff",
@@ -43,7 +46,8 @@ const buildConfig = (theme) => {
     chartOnly: false,
     scalePosition: "right",
     scaleMode: "Normal",
-    fontFamily: "-apple-system, BlinkMacSystemFont, Trebuchet MS, Roboto, Ubuntu, sans-serif",
+    fontFamily:
+      "-apple-system, BlinkMacSystemFont, Trebuchet MS, Roboto, Ubuntu, sans-serif",
     valuesTracking: "1",
     changeMode: "price-and-percent",
     symbols: SYMBOLS.map((symbol) => [symbol]),
@@ -87,9 +91,28 @@ const renderMarketWidget = (theme) => {
 };
 
 export const initMarketWidget = () => {
-  const currentTheme = document.documentElement.dataset.theme ?? "light";
-  renderMarketWidget(currentTheme);
-  window.addEventListener("themechange", (event) => {
-    renderMarketWidget(event.detail?.theme ?? "light");
+  const host = document.getElementById("tradingview-widget");
+  if (!host) return;
+  let visible = false;
+  const render = () =>
+    renderMarketWidget(document.documentElement.dataset.theme ?? "light");
+  if ("IntersectionObserver" in window) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          visible = true;
+          render();
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(host);
+  } else {
+    visible = true;
+    render();
+  }
+  window.addEventListener("themechange", () => {
+    if (visible) render();
   });
 };
