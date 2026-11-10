@@ -15,7 +15,11 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
-from scripts.yahoo_history import PriceHistory, recover_global_equities
+from scripts.yahoo_history import (
+    PriceHistory,
+    recover_global_equities,
+    recover_from_snapshot,
+)
 from scripts.portfolio import refresh_derived
 from scripts.portfolio import compute_returns as compute_returns
 
@@ -231,7 +235,9 @@ def generate_sample_price_history(holding: HoldingConfig) -> List[Dict[str, floa
     return points
 
 
-def generate_online_price_history(holding: HoldingConfig) -> List[Dict[str, float]]:
+def generate_online_price_history(
+    holding: HoldingConfig, *, previous=None
+) -> List[Dict[str, float]]:
     try:
         import yfinance as yf
     except ImportError as error:
@@ -244,13 +250,25 @@ def generate_online_price_history(holding: HoldingConfig) -> List[Dict[str, floa
         history = ticker.history(
             period="5y", interval="1d", auto_adjust=False, timeout=6
         )
-        history, warnings = recover_global_equities(ticker, history)
+        try:
+            history, warnings = recover_global_equities(ticker, history)
+        except RuntimeError:
+            if not previous:
+                raise
+            return recover_from_snapshot(ticker, history, previous)
         # Conservamos la misma base ajustada usada por los demás instrumentos.
         history = history.rename(columns={"Close": "Raw Close", "Adj Close": "Close"})
     else:
         history = ticker.history(
             period="5y", interval="1d", auto_adjust=True, timeout=6
         )
+    if len(history.dropna(subset=["Close"])) < 2 and holding.ticker in {
+        "CFIETFIPSA",
+        "CFIETFEM",
+    }:
+        from scripts.racional_history import fetch_racional_history
+
+        return fetch_racional_history(holding, ticker.get_history_metadata(), previous)
     if history.empty:
         return []
     history = history[["Close"]].dropna()
@@ -305,6 +323,11 @@ def build_payload(
                     "series": {
                         "price_history": sorted(history, key=lambda p: p["date"])
                     },
+                    **(
+                        {"price_source": history.provenance}
+                        if getattr(history, "provenance", None)
+                        else {}
+                    ),
                     "status": {
                         "warnings": warnings,
                         "retained": bool(getattr(history, "retained", False)),
@@ -352,7 +375,13 @@ def generate_online_payload(existing_payload: Optional[Dict] = None) -> Dict:
     notes = notes or None
     # Una descarga fallida conserva el histórico anterior y explica su procedencia.
     previous = {}
-    for platform in (existing_payload or {}).get("platforms", []):
+    real_source = (existing_payload or {}).get("source", {}).get("provider") in {
+        "yfinance",
+        "yfinance+racional",
+    }
+    for platform in (
+        (existing_payload or {}).get("platforms", []) if real_source else []
+    ):
         for h in platform["holdings"]:
             previous[h.get("quote_symbol", h["ticker"])] = h
     from concurrent.futures import ThreadPoolExecutor, wait
@@ -362,7 +391,16 @@ def generate_online_payload(existing_payload: Optional[Dict] = None) -> Dict:
     }
     executor = ThreadPoolExecutor(max_workers=4)
     futures = {
-        symbol: executor.submit(generate_online_price_history, h)
+        symbol: executor.submit(
+            generate_online_price_history,
+            h,
+            **(
+                {"previous": previous[symbol]}
+                if symbol in previous
+                and symbol in {"CFIETFGE.SN", "CFIETFIPSA.SN", "CFIETFEM.SN"}
+                else {}
+            ),
+        )
         for symbol, h in unique.items()
     }
     wait(futures.values(), timeout=25)
@@ -400,6 +438,7 @@ def generate_online_payload(existing_payload: Optional[Dict] = None) -> Dict:
                             f"Se conservó el histórico anterior: {error}",
                         ],
                     )
+                    retained.provenance = old.get("price_source")
                     retained.retained = True
                     cached[symbol] = retained
                 else:
@@ -409,7 +448,14 @@ def generate_online_payload(existing_payload: Optional[Dict] = None) -> Dict:
             raise result
         return result
 
-    return build_payload(provider, provider_name="yfinance", notes=notes)
+    payload = build_payload(provider, provider_name="yfinance", notes=notes)
+    if any(
+        (h.get("price_source") or {}).get("provider") == "racional"
+        for p in payload["platforms"]
+        for h in p["holdings"]
+    ):
+        payload["source"]["provider"] = "yfinance+racional"
+    return payload
 
 
 def parse_args() -> argparse.Namespace:

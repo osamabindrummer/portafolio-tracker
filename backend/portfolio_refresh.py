@@ -113,8 +113,17 @@ def validate_refresh_quality(payload: dict) -> None:
             )
         )
         if not total or fresh / total < 0.8:
+            missing = ", ".join(
+                h["ticker"]
+                for h in platform["holdings"]
+                if any(
+                    h["status"].get(key)
+                    for key in ("missing_data", "stale", "retained")
+                )
+            )
+            coverage = fresh / total if total else 0
             raise RuntimeError(
-                f"{platform['name']}: menos del 80 % del peso configurado tiene históricos recientes descargados. Se conserva el snapshot anterior."
+                f"{platform['name']}: menos del 80 % del peso configurado tiene históricos recientes descargados (cobertura: {coverage:.1%}; instrumentos sin verificar: {missing}). Se conserva el snapshot anterior."
             )
 
 

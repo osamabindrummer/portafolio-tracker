@@ -119,7 +119,7 @@ class RefreshSafetyTests(unittest.TestCase):
     def test_partial_download_keeps_previous_prices_and_records_warning(self):
         previous = build_payload(lambda h: recent_history(), "yfinance")
 
-        def fetch(h):
+        def fetch(h, **options):
             if h.fetch_symbol == "CFIETFCC.SN":
                 raise RuntimeError("Fuente caída")
             return recent_history()
@@ -189,6 +189,26 @@ class RefreshSafetyTests(unittest.TestCase):
         ]
         with self.assertRaisesRegex(RuntimeError, "fuera del plazo"):
             _validate_indicator_freshness(items)
+
+    def test_online_failure_never_reuses_offline_prices(self):
+        from scripts.fetch_data import generate_offline_payload
+
+        previous = generate_offline_payload()
+        with patch(
+            "scripts.fetch_data.generate_online_price_history",
+            side_effect=RuntimeError("Fuente caída"),
+        ) as fetch:
+            result = generate_online_payload(previous)
+        self.assertTrue(
+            all("previous" not in call.kwargs for call in fetch.call_args_list)
+        )
+        self.assertTrue(
+            all(
+                h["status"]["missing_data"] and not h["status"].get("retained")
+                for p in result["platforms"]
+                for h in p["holdings"]
+            )
+        )
 
     def test_offline_examples_share_one_history_per_symbol(self):
         from scripts.fetch_data import generate_offline_payload

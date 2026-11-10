@@ -145,6 +145,11 @@ def refresh_derived(payload: dict) -> dict:
         for holding in platform["holdings"]:
             history = holding.get("series", {}).get("price_history", [])
             holding["metrics"] = compute_returns(history)
+            # Un cierre sin ajuste de distribuciones sirve para variaciones de precio,
+            # pero no lo presentamos como un retorno ajustado de largo plazo.
+            if (holding.get("price_source") or {}).get("adjusted") is False:
+                holding["metrics"]["return_1y"] = None
+                holding["metrics"]["return_5y"] = None
             holding["latest_price"] = history[-1]["close"] if history else None
             holding["observed_at"] = history[-1]["date"] if history else None
             status = holding.setdefault("status", {})

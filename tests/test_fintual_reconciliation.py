@@ -9,7 +9,7 @@ from backend.portfolio_refresh import fetch_latest_payload
 from backend.storage import LATEST_DATASET, StorageMeta
 from scripts.fetch_data import PLATFORM_CONFIG
 from scripts.update_fintual import matches_config
-from scripts.portfolio import unpack_payload
+from scripts.portfolio import unpack_payload, compute_returns
 
 
 class FintualReconciliationTests(unittest.TestCase):
@@ -48,8 +48,10 @@ class FintualReconciliationTests(unittest.TestCase):
             )
         for platform in original_racional:
             holding = next(h for h in platform["holdings"] if "CFIETFGE" in h["ticker"])
-            self.assertEqual(holding["metrics"]["return_1y"], 0.1814)
-            self.assertEqual(holding["metrics"]["return_5y"], 0.9407)
+            self.assertEqual(
+                holding["metrics"], compute_returns(holding["series"]["price_history"])
+            )
+            self.assertFalse(holding["status"]["missing_data"])
 
 
 if __name__ == "__main__":

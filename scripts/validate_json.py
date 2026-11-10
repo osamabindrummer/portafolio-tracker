@@ -174,6 +174,41 @@ def validate_payload(payload: dict) -> None:
                         metrics.get(key) is None or _is_number(metrics[key]),
                         f"{ticker}: {key} no es finito.",
                     )
+            price_source = holding.get("price_source")
+            if price_source is not None:
+                if not isinstance(price_source, dict):
+                    errors.append(f"{ticker}: price_source debe ser un objeto.")
+                else:
+                    require(
+                        price_source.get("provider") in ("yfinance", "racional"),
+                        f"{ticker}: fuente de precios desconocida.",
+                    )
+                    require(
+                        type(price_source.get("adjusted")) is bool,
+                        f"{ticker}: adjusted debe ser booleano.",
+                    )
+                    require(
+                        isinstance(price_source.get("source_url"), str)
+                        and price_source["source_url"].startswith("https://"),
+                        f"{ticker}: falta la URL de la fuente.",
+                    )
+                    require(
+                        valid_date(price_source.get("corroborated_at")),
+                        f"{ticker}: falta la fecha de corroboración.",
+                    )
+                    if price_source.get("provider") == "racional":
+                        require(
+                            price_source.get("adjusted") is False,
+                            f"{ticker}: no se ha verificado el ajuste de distribuciones de Racional.",
+                        )
+                    if price_source.get("adjusted") is False and isinstance(
+                        metrics, dict
+                    ):
+                        require(
+                            metrics.get("return_1y") is None
+                            and metrics.get("return_5y") is None,
+                            f"{ticker}: no se pueden atribuir retornos ajustados a esta fuente.",
+                        )
             series = holding.get("series")
             history = series.get("price_history") if isinstance(series, dict) else None
             if not isinstance(history, list):

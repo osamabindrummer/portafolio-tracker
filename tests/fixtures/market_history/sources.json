@@ -1,0 +1,8 @@
+{
+  "observed_at": "2026-11-09",
+  "description": "Series diarias públicas; sin ajuste de distribuciones verificado.",
+  "sources": {
+    "cfietfipsa.json": "https://racional.cl/assets/cfietfipsa",
+    "cfietfem.json": "https://racional.cl/assets/cfietfem"
+  }
+}

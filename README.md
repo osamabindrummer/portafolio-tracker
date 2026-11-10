@@ -19,7 +19,7 @@ Los archivos compactos usan `schema_version: 2`. El lector también admite snaps
 
 ## Interpretación de las métricas
 
-Los retornos son cambios acumulados de cierres ajustados en la moneda de cotización. Se muestran promedios ponderados sobre los componentes con datos para cada período, con su peso cubierto disponible en Datos y metodología. No equivalen a la rentabilidad histórica efectiva de un fondo: no incorporan comisiones, cambios de cartera ni conversión cambiaria.
+Los retornos de uno y cinco años son cambios acumulados de cierres ajustados en la moneda de cotización. Las variaciones diaria y mensual pueden usar cierres de precio cuando no se ha verificado el ajuste por distribuciones; esa limitación queda registrada por instrumento. Se muestran promedios ponderados sobre los componentes con datos para cada período, con su peso cubierto disponible en Datos y metodología. No equivalen a la rentabilidad histórica efectiva de un fondo: no incorporan comisiones, cambios de cartera ni conversión cambiaria.
 
 - Un mes significa los últimos 30 días; uno y cinco años usan aniversarios de calendario.
 - Se admite una diferencia máxima de siete días alrededor del inicio por cierres de mercado y límites de consulta. Una observación anterior al objetivo tampoco puede estar alejada más de siete días.
@@ -28,7 +28,16 @@ Los retornos son cambios acumulados de cierres ajustados en la moneda de cotizac
 - La fecha de generación del snapshot, la de composición y las fechas de precios son distintas. La compactación conserva las fechas históricas originales.
 - Los primeros ocho holdings de Risky Norris pueden sumar menos del 100 % del patrimonio. El resto no se estima.
 
-CFIETFGE.SN mantiene la verificación específica del histórico de Yahoo con cotización fechada y operaciones por hora. No se interpolan precios ni se inventan ajustes; los eventos corporativos no verificables impiden la recuperación. Las advertencias se conservan y se consultan en Datos y metodología.
+### Recuperación de cobertura del Pack 107 LIR
+
+Yahoo llegó a entregar una sola observación para IPSA y Emerging Markets y a alterar retrospectivamente el histórico diario de Global Equities. Estos instrumentos suman el 40 % del Pack 107 LIR y dejaban sólo un 60 % de cobertura reciente.
+
+- Global Equities conserva el prefijo ajustado archivado y agrega sesiones observadas por hora sólo si al menos tres de los últimos cinco cierres superpuestos, incluido el último archivado, coinciden dentro del 2 %. La última sesión debe coincidir con la cotización fechada y la información diaria de eventos corporativos debe cubrir todas las sesiones añadidas, sin distribuciones ni splits pendientes de ajuste.
+- Para IPSA y Emerging Markets se consultan las series diarias publicadas por Racional. Se verifican ticker, moneda, fechas, precios, períodos superpuestos y el último cierre contra Yahoo en la misma fecha, con tolerancia del 2 %. No se mezclan con históricos ajustados anteriores.
+- Las series de Racional no acreditan ajustes por distribuciones: permiten variaciones diaria y mensual, pero no aportan retornos ajustados de uno o cinco años. Esos valores permanecen como `--`, aunque haya suficientes fechas.
+- El umbral sigue siendo el 80 % del peso configurado de cada cartera. Un histórico conservado sin sesiones corroboradas no cuenta como descarga reciente. Una inconsistencia impide la recuperación y conserva la última versión válida.
+
+No se interpolan precios ni se inventan ajustes. Las advertencias y fuentes se consultan en Datos y metodología.
 
 ## Actualizaciones y seguridad
 
